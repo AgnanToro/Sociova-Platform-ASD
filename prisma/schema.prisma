@@ -1,0 +1,274 @@
+// =============================================================
+// Sociova — Prisma Schema
+// Database: MySQL (Laragon local)
+// Auth: Supabase Auth (cloud)
+// =============================================================
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+// NOTE: MySQL Prisma enums compile to ENUM columns natively.
+enum AppRole {
+  child
+  parent
+  teacher
+  therapist
+}
+
+// Mirrors auth.users from Supabase — userId is the Supabase user UUID.
+model UserProfile {
+  id           String   @id @default(uuid())
+  userId       String   @unique @map("user_id") @db.VarChar(36)
+  fullName     String?  @map("full_name") @db.VarChar(255)
+  email        String?  @db.VarChar(255)
+  passwordHash String?  @map("password_hash") @db.VarChar(255)
+  avatarUrl    String?  @map("avatar_url") @db.Text
+  languageMode String   @default("hybrid") @map("language_mode") @db.VarChar(50)
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  roles UserRole[] @relation("ProfileRoles")
+
+  @@map("profiles")
+}
+
+model UserRole {
+  id        String   @id @default(uuid())
+  userId    String   @map("user_id") @db.VarChar(36)
+  role      AppRole
+  createdAt DateTime @default(now()) @map("created_at")
+
+  profile UserProfile? @relation("ProfileRoles", fields: [userId], references: [userId])
+
+  @@unique([userId, role])
+  @@map("user_roles")
+}
+
+model ChildProfile {
+  id             String  @id @default(uuid())
+  parentId       String  @map("parent_id") @db.VarChar(36)
+  userId         String? @unique @map("user_id") @db.VarChar(36)
+  teacherId      String? @map("teacher_id") @db.VarChar(36)
+  therapistId    String? @map("therapist_id") @db.VarChar(36)
+  name           String  @db.VarChar(255)
+  age            Int?
+  diagnosisLevel String? @map("diagnosis_level") @db.VarChar(100)
+  learningGoal   String? @map("learning_goal") @db.Text
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  progress           LearningProgress[]
+  simulationSessions SimulationSession[]
+  socialStories      SocialStory[]
+  emotionAnalyses    EmotionAnalysis[]
+  achievements       Achievement[]
+  journeyProgress    UserJourneyProgress[]
+
+  @@map("children")
+}
+
+model LearningProgress {
+  id                 String @id @default(uuid())
+  childId            String @map("child_id") @db.VarChar(36)
+  xp                 Int    @default(0)
+  level              Int    @default(1)
+  streak             Int    @default(0)
+  weeklyGoal         Int    @default(5) @map("weekly_goal")
+  completedMissions  Int    @default(0) @map("completed_missions")
+  totalMissions      Int    @default(0) @map("total_missions")
+  communicationScore Int    @default(0) @map("communication_score")
+  confidenceScore    Int    @default(0) @map("confidence_score")
+  empathyScore       Int    @default(0) @map("empathy_score")
+  greetingScore      Int    @default(0) @map("greeting_score")
+  listeningScore     Int    @default(0) @map("listening_score")
+  conversationScore  Int    @default(0) @map("conversation_score")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  child ChildProfile @relation(fields: [childId], references: [id], onDelete: Cascade)
+
+  @@map("learning_progress")
+}
+
+model SimulationSession {
+  id           String  @id @default(uuid())
+  childId      String  @map("child_id") @db.VarChar(36)
+  scenario     String  @db.VarChar(255)
+  conversation Json    @default("[]")
+  score        Int?
+  feedback     String? @db.Text
+  strength     String? @db.Text
+  suggestion   String? @db.Text
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  child ChildProfile @relation(fields: [childId], references: [id], onDelete: Cascade)
+
+  @@map("simulation_sessions")
+}
+
+model SocialStory {
+  id             String @id @default(uuid())
+  childId        String @map("child_id") @db.VarChar(36)
+  title          String @db.VarChar(255)
+  situation      String @db.Text
+  generatedStory String @map("generated_story") @db.Text
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  child ChildProfile @relation(fields: [childId], references: [id], onDelete: Cascade)
+
+  @@map("social_stories")
+}
+
+model EmotionAnalysis {
+  id              String   @id @default(uuid())
+  childId         String   @map("child_id") @db.VarChar(36)
+  inputText       String   @map("input_text") @db.Text
+  detectedEmotion String?  @map("detected_emotion") @db.VarChar(100)
+  confidence      Decimal? @db.Decimal(5, 2)
+  recommendation  String?  @db.Text
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  child ChildProfile @relation(fields: [childId], references: [id], onDelete: Cascade)
+
+  @@map("emotion_analyses")
+}
+
+model Achievement {
+  id          String  @id @default(uuid())
+  childId     String  @map("child_id") @db.VarChar(36)
+  name        String  @db.VarChar(255)
+  description String? @db.Text
+
+  unlockedAt DateTime @default(now()) @map("unlocked_at")
+
+  child ChildProfile @relation(fields: [childId], references: [id], onDelete: Cascade)
+
+  @@map("achievements")
+}
+
+model CommunityPost {
+  id       String   @id @default(uuid())
+  authorId String   @map("author_id") @db.VarChar(36)
+  role     AppRole?
+  content  String   @db.Text
+  likes    Int      @default(0)
+  comments Int      @default(0)
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@map("community_posts")
+}
+
+model UserSettings {
+  id                   String  @id @default(uuid())
+  userId               String  @unique @map("user_id") @db.VarChar(36)
+  dailyMissionReminder Boolean @default(true) @map("daily_mission_reminder")
+  weeklyProgressReport Boolean @default(true) @map("weekly_progress_report")
+  communityReplies     Boolean @default(false) @map("community_replies")
+  largeFont            Boolean @default(false) @map("large_font")
+  highContrast         Boolean @default(false) @map("high_contrast")
+  reduceMotion         Boolean @default(false) @map("reduce_motion")
+  screenReader         Boolean @default(true) @map("screen_reader")
+  allowResearchData    Boolean @default(false) @map("allow_research_data")
+  shareWithTherapist   Boolean @default(true) @map("share_with_therapist")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("user_settings")
+}
+
+model JourneyLevel {
+  id          String @id @default(uuid())
+  levelOrder  Int    @unique @map("level_order")
+  title       String @db.VarChar(255)
+  description String @db.Text
+  icon        String @default("message-circle") @db.VarChar(100)
+  xpReward    Int    @default(100) @map("xp_reward")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  journeyProgress UserJourneyProgress[]
+
+  @@map("journey_levels")
+}
+
+enum JourneyStatus {
+  completed
+  in_progress
+  locked
+}
+
+model UserJourneyProgress {
+  id             String        @id @default(uuid())
+  childId        String        @map("child_id") @db.VarChar(36)
+  journeyLevelId String        @map("journey_level_id") @db.VarChar(36)
+  status         JourneyStatus @default(locked)
+  completedAt    DateTime?     @map("completed_at")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  child        ChildProfile @relation(fields: [childId], references: [id], onDelete: Cascade)
+  journeyLevel JourneyLevel @relation(fields: [journeyLevelId], references: [id], onDelete: Cascade)
+
+  @@unique([childId, journeyLevelId])
+  @@map("user_journey_progress")
+}
+
+model Mission {
+  id          String  @id @default(uuid())
+  missionType String  @map("mission_type") @db.VarChar(20)
+  title       String  @db.VarChar(255)
+  description String  @db.Text
+  targetCount Int     @default(1) @map("target_count")
+  xpReward    Int     @default(50) @map("xp_reward")
+  isActive    Boolean @default(true) @map("is_active")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("missions")
+}
+
+model Resource {
+  id          String  @id @default(uuid())
+  title       String  @db.VarChar(255)
+  description String  @db.Text
+  category    String  @default("Guide") @db.VarChar(100)
+  language    String  @default("id") @db.VarChar(10)
+  url         String? @db.Text
+  isActive    Boolean @default(true) @map("is_active")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("resources")
+}
+
+model SimulationScenario {
+  id             String  @id @default(uuid())
+  title          String  @unique @db.VarChar(255)
+  description    String  @db.Text
+  openingMessage String  @map("opening_message") @db.Text
+  quickReplies   Json    @default("[]") @map("quick_replies")
+  sortOrder      Int     @default(0) @map("sort_order")
+  isActive       Boolean @default(true) @map("is_active")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("simulation_scenarios")
+}
