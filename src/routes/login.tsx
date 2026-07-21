@@ -77,7 +77,7 @@ function LoginPage() {
                 id="email"
                 type="email"
                 required
-                placeholder="kamu@email.com"
+                placeholder="Email"
                 className="pl-9 rounded-xl h-11"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
@@ -92,7 +92,7 @@ function LoginPage() {
                 id="password"
                 type={show ? "text" : "password"}
                 required
-                placeholder="••••••••"
+                placeholder="Password"
                 className="pr-9 rounded-xl h-11"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}

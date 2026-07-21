@@ -70,6 +70,11 @@ model ChildProfile {
   emotionAnalyses    EmotionAnalysis[]
   achievements       Achievement[]
   journeyProgress    UserJourneyProgress[]
+  activityHistory    ActivityHistory[]
+  weeklyProgress     WeeklyProgress[]
+  teacherObservations TeacherObservation[]
+  therapistNotes     TherapistNote[]
+  recommendations    Recommendation[]
 
   @@map("children")
 }
@@ -272,3 +277,80 @@ model SimulationScenario {
 
   @@map("simulation_scenarios")
 }
+
+model ActivityHistory {
+  id          String   @id @default(uuid())
+  childId     String   @map("child_id") @db.VarChar(36)
+  title       String   @db.VarChar(255)
+  category    String   @db.VarChar(100)
+  detail      String?  @db.Text
+  score       Int?
+  completedAt DateTime @default(now()) @map("completed_at")
+
+  child ChildProfile @relation(fields: [childId], references: [id], onDelete: Cascade)
+
+  @@index([childId, completedAt])
+  @@map("activity_history")
+}
+
+model WeeklyProgress {
+  id                  String   @id @default(uuid())
+  childId             String   @map("child_id") @db.VarChar(36)
+  weekStart           DateTime @map("week_start") @db.Date
+  communicationScore  Int      @map("communication_score")
+  confidenceScore     Int      @map("confidence_score")
+  empathyScore        Int      @map("empathy_score")
+  completedActivities Int      @map("completed_activities")
+  summary             String?  @db.Text
+  createdAt           DateTime @default(now()) @map("created_at")
+
+  child ChildProfile @relation(fields: [childId], references: [id], onDelete: Cascade)
+
+  @@unique([childId, weekStart])
+  @@map("weekly_progress")
+}
+
+model TeacherObservation {
+  id          String   @id @default(uuid())
+  childId     String   @map("child_id") @db.VarChar(36)
+  teacherId   String   @map("teacher_id") @db.VarChar(36)
+  title       String   @db.VarChar(255)
+  observation String   @db.Text
+  supportPlan String?  @map("support_plan") @db.Text
+  observedAt  DateTime @default(now()) @map("observed_at")
+
+  child ChildProfile @relation(fields: [childId], references: [id], onDelete: Cascade)
+
+  @@index([childId, observedAt])
+  @@map("teacher_observations")
+}
+
+model TherapistNote {
+  id          String   @id @default(uuid())
+  childId     String   @map("child_id") @db.VarChar(36)
+  therapistId String   @map("therapist_id") @db.VarChar(36)
+  title       String   @db.VarChar(255)
+  note        String   @db.Text
+  nextFocus   String?  @map("next_focus") @db.Text
+  sessionAt   DateTime @default(now()) @map("session_at")
+
+  child ChildProfile @relation(fields: [childId], references: [id], onDelete: Cascade)
+
+  @@index([childId, sessionAt])
+  @@map("therapist_notes")
+}
+
+model Recommendation {
+  id          String   @id @default(uuid())
+  childId     String   @map("child_id") @db.VarChar(36)
+  authorId    String?  @map("author_id") @db.VarChar(36)
+  audience    AppRole  @default(parent)
+  title       String   @db.VarChar(255)
+  description String   @db.Text
+  category    String   @db.VarChar(100)
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  child ChildProfile @relation(fields: [childId], references: [id], onDelete: Cascade)
+
+  @@index([childId, createdAt])
+  @@map("recommendations")

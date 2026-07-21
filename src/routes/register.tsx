@@ -91,8 +91,8 @@ function RegisterPage() {
   return (
     <AuthShell>
       <div className="mb-6 text-center">
-        <h1 className="font-display text-3xl font-bold">Buat akun</h1>
-        <p className="mt-1 text-sm text-muted-foreground">Daftar dan mulai dalam satu menit.</p>
+        <h1 className="font-display text-3xl font-bold">Daftar · Sociova</h1>
+        <p className="mt-1 text-sm text-muted-foreground">Buat akun Sociova dan mulai perjalanan belajar bersama Sova.</p>
       </div>
       <Card className="glass rounded-2xl p-6 shadow-xl">
         <form className="space-y-4" onSubmit={handleSubmit}>
@@ -127,13 +127,13 @@ function RegisterPage() {
 
           {/* Full name */}
           <div className="space-y-1.5">
-            <Label htmlFor="name">Nama lengkap</Label>
+            <Label htmlFor="name">Nama</Label>
             <div className="relative">
               <User className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <Input
                 id="name"
                 required
-                placeholder="Nama kamu"
+                placeholder="Masukkan nama lengkap"
                 className="pl-9 h-11 rounded-xl"
                 value={fullName}
                 onChange={(e) => setFullName(e.target.value)}
@@ -150,7 +150,7 @@ function RegisterPage() {
                 id="email"
                 type="email"
                 required
-                placeholder="kamu@email.com"
+                placeholder="contoh@gmail.com"
                 className="pl-9 h-11 rounded-xl"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
