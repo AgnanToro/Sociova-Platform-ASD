@@ -64,17 +64,17 @@ model ChildProfile {
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
-  progress           LearningProgress[]
-  simulationSessions SimulationSession[]
-  socialStories      SocialStory[]
-  emotionAnalyses    EmotionAnalysis[]
-  achievements       Achievement[]
-  journeyProgress    UserJourneyProgress[]
-  activityHistory    ActivityHistory[]
-  weeklyProgress     WeeklyProgress[]
+  progress            LearningProgress[]
+  simulationSessions  SimulationSession[]
+  socialStories       SocialStory[]
+  emotionAnalyses     EmotionAnalysis[]
+  achievements        Achievement[]
+  journeyProgress     UserJourneyProgress[]
+  activityHistory     ActivityHistory[]
+  weeklyProgress      WeeklyProgress[]
   teacherObservations TeacherObservation[]
-  therapistNotes     TherapistNote[]
-  recommendations    Recommendation[]
+  therapistNotes      TherapistNote[]
+  recommendations     Recommendation[]
 
   @@map("children")
 }
@@ -354,3 +354,4 @@ model Recommendation {
 
   @@index([childId, createdAt])
   @@map("recommendations")
+}

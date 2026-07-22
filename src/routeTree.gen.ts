@@ -27,6 +27,7 @@ import { Route as DashboardEmotionRouteImport } from './routes/dashboard.emotion
 import { Route as DashboardCommunityRouteImport } from './routes/dashboard.community'
 import { Route as DashboardAnalyticsRouteImport } from './routes/dashboard.analytics'
 import { Route as DashboardAchievementsRouteImport } from './routes/dashboard.achievements'
+import { Route as ApiDataActionRouteImport } from './routes/api/data/$action'
 import { Route as ApiAuthRegisterRouteImport } from './routes/api/auth/register'
 import { Route as ApiAuthLoginRouteImport } from './routes/api/auth/login'
 
@@ -120,6 +121,11 @@ const DashboardAchievementsRoute = DashboardAchievementsRouteImport.update({
   path: '/achievements',
   getParentRoute: () => DashboardRoute,
 } as any)
+const ApiDataActionRoute = ApiDataActionRouteImport.update({
+  id: '/api/data/$action',
+  path: '/api/data/$action',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiAuthRegisterRoute = ApiAuthRegisterRouteImport.update({
   id: '/api/auth/register',
   path: '/api/auth/register',
@@ -152,6 +158,7 @@ export interface FileRoutesByFullPath {
   '/dashboard/': typeof DashboardIndexRoute
   '/api/auth/login': typeof ApiAuthLoginRoute
   '/api/auth/register': typeof ApiAuthRegisterRoute
+  '/api/data/$action': typeof ApiDataActionRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -173,6 +180,7 @@ export interface FileRoutesByTo {
   '/dashboard': typeof DashboardIndexRoute
   '/api/auth/login': typeof ApiAuthLoginRoute
   '/api/auth/register': typeof ApiAuthRegisterRoute
+  '/api/data/$action': typeof ApiDataActionRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -196,6 +204,7 @@ export interface FileRoutesById {
   '/dashboard/': typeof DashboardIndexRoute
   '/api/auth/login': typeof ApiAuthLoginRoute
   '/api/auth/register': typeof ApiAuthRegisterRoute
+  '/api/data/$action': typeof ApiDataActionRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -220,6 +229,7 @@ export interface FileRouteTypes {
     | '/dashboard/'
     | '/api/auth/login'
     | '/api/auth/register'
+    | '/api/data/$action'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -241,6 +251,7 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/api/auth/login'
     | '/api/auth/register'
+    | '/api/data/$action'
   id:
     | '__root__'
     | '/'
@@ -263,6 +274,7 @@ export interface FileRouteTypes {
     | '/dashboard/'
     | '/api/auth/login'
     | '/api/auth/register'
+    | '/api/data/$action'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -273,6 +285,7 @@ export interface RootRouteChildren {
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   ApiAuthLoginRoute: typeof ApiAuthLoginRoute
   ApiAuthRegisterRoute: typeof ApiAuthRegisterRoute
+  ApiDataActionRoute: typeof ApiDataActionRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -403,6 +416,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DashboardAchievementsRouteImport
       parentRoute: typeof DashboardRoute
     }
+    '/api/data/$action': {
+      id: '/api/data/$action'
+      path: '/api/data/$action'
+      fullPath: '/api/data/$action'
+      preLoaderRoute: typeof ApiDataActionRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/auth/register': {
       id: '/api/auth/register'
       path: '/api/auth/register'
@@ -464,6 +484,7 @@ const rootRouteChildren: RootRouteChildren = {
   SitemapDotxmlRoute: SitemapDotxmlRoute,
   ApiAuthLoginRoute: ApiAuthLoginRoute,
   ApiAuthRegisterRoute: ApiAuthRegisterRoute,
+  ApiDataActionRoute: ApiDataActionRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

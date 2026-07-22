@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, Navigate } from "@tanstack/react-router";
 import {
   Flame,
   Trophy,
@@ -17,13 +17,20 @@ import { Progress } from "@/components/ui/progress";
 import { PageHeader } from "@/components/site/page-header";
 import { SovaBubble } from "@/components/site/sova";
 import { loadDashboardData, useSociovaQuery, formatShortDate } from "@/lib/sociova-data";
+import { useAuth } from "@/lib/auth";
 
 export const Route = createFileRoute("/dashboard/")({
   component: DashboardHome,
 });
 
 function DashboardHome() {
+  const { role, loading: authLoading } = useAuth();
   const { data, loading, error } = useSociovaQuery(loadDashboardData);
+
+  if (authLoading) return <StateCard title="Loading dashboard" description="Menyiapkan ruang kerja Anda." />;
+  if (role === "parent") return <Navigate to="/dashboard/parent" replace />;
+  if (role === "teacher") return <Navigate to="/dashboard/teacher" replace />;
+  if (role === "therapist") return <Navigate to="/dashboard/therapist" replace />;
 
   if (loading)
     return (
