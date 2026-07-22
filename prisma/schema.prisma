@@ -171,7 +171,7 @@ model CommunityPost {
   comments Int      @default(0)
 
   createdAt      DateTime         @default(now()) @map("created_at")
-  CommunityReply CommunityReply[]
+  replies CommunityReply[]
 
   @@map("community_posts")
 }

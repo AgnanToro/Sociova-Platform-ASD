@@ -3,7 +3,6 @@ import {
   LayoutDashboard,
   Map,
   Bot,
-  BookHeart,
   Smile,
   Trophy,
   BarChart3,
@@ -15,7 +14,6 @@ import {
   HeartPulse,
   GraduationCap,
   ClipboardList,
-  LineChart,
   FileText,
   UserRound,
 } from "lucide-react";
@@ -42,49 +40,46 @@ type Item = {
   exact?: boolean;
 };
 
-// Menu items per role
 const ITEMS_BY_ROLE: Record<AppRole | "default", Item[]> = {
   child: [
-    { to: "/dashboard",            label: "Dashboard",       icon: LayoutDashboard, exact: true },
-    { to: "/dashboard/mission",    label: "Today's Mission", icon: ClipboardList },
-    { to: "/dashboard/journey",    label: "Journey",         icon: Map },
-    { to: "/dashboard/simulation", label: "AI Simulation",   icon: Bot },
-    { to: "/dashboard/emotion",    label: "Emotion Training",icon: Smile },
-    { to: "/dashboard/achievements",label: "Achievements",   icon: Trophy },
-    { to: "/dashboard/resources",  label: "Learning Hub",    icon: Library },
-    { to: "/dashboard/settings",   label: "Settings",        icon: Settings },
+    { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard, exact: true },
+    { to: "/dashboard/mission", label: "Today's Mission", icon: ClipboardList },
+    { to: "/dashboard/journey", label: "Journey", icon: Map },
+    { to: "/dashboard/simulation", label: "AI Simulation", icon: Bot },
+    { to: "/dashboard/emotion", label: "Emotion Training", icon: Smile },
+    { to: "/dashboard/achievements", label: "Achievements", icon: Trophy },
+    { to: "/dashboard/community", label: "Community", icon: Users },
+    { to: "/dashboard/settings", label: "Settings", icon: Settings },
   ],
   parent: [
-    { to: "/dashboard",            label: "Dashboard",       icon: LayoutDashboard, exact: true },
-    { to: "/dashboard/parent",     label: "Child Progress",  icon: Baby },
-    { to: "/dashboard/story",      label: "Social Story",    icon: BookHeart },
-    { to: "/dashboard/analytics",  label: "Weekly Reports",  icon: BarChart3 },
-    { to: "/dashboard/resources",  label: "Resources",       icon: Library },
-    { to: "/dashboard/community",  label: "Community",       icon: Users },
-    { to: "/dashboard/settings",   label: "Settings",        icon: Settings },
-  ],
-  therapist: [
-    { to: "/dashboard",            label: "Dashboard",       icon: LayoutDashboard, exact: true },
-    { to: "/dashboard/therapist",  label: "Clients",         icon: UserRound },
-    { to: "/dashboard/emotion",    label: "Emotion Trends",  icon: HeartPulse },
-    { to: "/dashboard/story",      label: "Session Notes",   icon: FileText },
-    { to: "/dashboard/analytics",  label: "Analytics",       icon: LineChart },
-    { to: "/dashboard/resources",  label: "Resources",       icon: Library },
-    { to: "/dashboard/community",  label: "Community",       icon: Users },
-    { to: "/dashboard/settings",   label: "Settings",        icon: Settings },
+    { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard, exact: true },
+    { to: "/dashboard/parent", label: "Child Progress", icon: Baby },
+    { to: "/dashboard/analytics", label: "Reports", icon: BarChart3 },
+    { to: "/dashboard/resources", label: "Resources", icon: Library },
+    { to: "/dashboard/community", label: "Community", icon: Users },
+    { to: "/dashboard/settings", label: "Settings", icon: Settings },
   ],
   teacher: [
-    { to: "/dashboard",            label: "Dashboard",       icon: LayoutDashboard, exact: true },
-    { to: "/dashboard/teacher",    label: "Students",        icon: GraduationCap },
-    { to: "/dashboard/analytics",  label: "Class Progress",  icon: BarChart3 },
-    { to: "/dashboard/simulation", label: "Assignments",     icon: ClipboardList },
-    { to: "/dashboard/resources",  label: "Resources",       icon: Library },
-    { to: "/dashboard/community",  label: "Community",       icon: Users },
-    { to: "/dashboard/settings",   label: "Settings",        icon: Settings },
+    { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard, exact: true },
+    { to: "/dashboard/teacher", label: "Students", icon: GraduationCap },
+    { to: "/dashboard/teacher", label: "Observations", icon: ClipboardList },
+    { to: "/dashboard/analytics", label: "Reports", icon: BarChart3 },
+    { to: "/dashboard/resources", label: "Resources", icon: Library },
+    { to: "/dashboard/community", label: "Community", icon: Users },
+    { to: "/dashboard/settings", label: "Settings", icon: Settings },
+  ],
+  therapist: [
+    { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard, exact: true },
+    { to: "/dashboard/therapist", label: "Clients", icon: UserRound },
+    { to: "/dashboard/therapist", label: "Session Notes", icon: FileText },
+    { to: "/dashboard/emotion", label: "Emotion Trends", icon: HeartPulse },
+    { to: "/dashboard/resources", label: "Resources", icon: Library },
+    { to: "/dashboard/community", label: "Community", icon: Users },
+    { to: "/dashboard/settings", label: "Settings", icon: Settings },
   ],
   default: [
-    { to: "/dashboard",            label: "Dashboard",       icon: LayoutDashboard, exact: true },
-    { to: "/dashboard/settings",   label: "Settings",        icon: Settings },
+    { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard, exact: true },
+    { to: "/dashboard/settings", label: "Settings", icon: Settings },
   ],
 };
 
@@ -93,11 +88,10 @@ export function DashboardSidebar() {
   const { role, signOut } = useAuth();
   const collapsed = state === "collapsed";
   const pathname = useRouterState({ select: (s) => s.location.pathname });
-
   const items = ITEMS_BY_ROLE[role ?? "default"] ?? ITEMS_BY_ROLE.default;
 
   const isActive = (to: string, exact?: boolean) =>
-    exact ? pathname === to : pathname === to || pathname.startsWith(to + "/");
+    exact ? pathname === to : pathname === to || pathname.startsWith(`${to}/`);
 
   return (
     <Sidebar collapsible="icon" className="border-r border-sidebar-border">
@@ -112,7 +106,7 @@ export function DashboardSidebar() {
           <SidebarGroupContent>
             <SidebarMenu>
               {items.map((item) => (
-                <SidebarMenuItem key={item.to}>
+                <SidebarMenuItem key={`${item.to}-${item.label}`}>
                   <SidebarMenuButton
                     asChild
                     isActive={isActive(item.to, item.exact)}
