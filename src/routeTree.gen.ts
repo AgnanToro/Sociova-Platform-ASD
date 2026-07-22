@@ -22,6 +22,7 @@ import { Route as DashboardSimulationRouteImport } from './routes/dashboard.simu
 import { Route as DashboardSettingsRouteImport } from './routes/dashboard.settings'
 import { Route as DashboardResourcesRouteImport } from './routes/dashboard.resources'
 import { Route as DashboardParentRouteImport } from './routes/dashboard.parent'
+import { Route as DashboardMissionRouteImport } from './routes/dashboard.mission'
 import { Route as DashboardJourneyRouteImport } from './routes/dashboard.journey'
 import { Route as DashboardEmotionRouteImport } from './routes/dashboard.emotion'
 import { Route as DashboardCommunityRouteImport } from './routes/dashboard.community'
@@ -96,6 +97,11 @@ const DashboardParentRoute = DashboardParentRouteImport.update({
   path: '/parent',
   getParentRoute: () => DashboardRoute,
 } as any)
+const DashboardMissionRoute = DashboardMissionRouteImport.update({
+  id: '/mission',
+  path: '/mission',
+  getParentRoute: () => DashboardRoute,
+} as any)
 const DashboardJourneyRoute = DashboardJourneyRouteImport.update({
   id: '/journey',
   path: '/journey',
@@ -148,6 +154,7 @@ export interface FileRoutesByFullPath {
   '/dashboard/community': typeof DashboardCommunityRoute
   '/dashboard/emotion': typeof DashboardEmotionRoute
   '/dashboard/journey': typeof DashboardJourneyRoute
+  '/dashboard/mission': typeof DashboardMissionRoute
   '/dashboard/parent': typeof DashboardParentRoute
   '/dashboard/resources': typeof DashboardResourcesRoute
   '/dashboard/settings': typeof DashboardSettingsRoute
@@ -170,6 +177,7 @@ export interface FileRoutesByTo {
   '/dashboard/community': typeof DashboardCommunityRoute
   '/dashboard/emotion': typeof DashboardEmotionRoute
   '/dashboard/journey': typeof DashboardJourneyRoute
+  '/dashboard/mission': typeof DashboardMissionRoute
   '/dashboard/parent': typeof DashboardParentRoute
   '/dashboard/resources': typeof DashboardResourcesRoute
   '/dashboard/settings': typeof DashboardSettingsRoute
@@ -194,6 +202,7 @@ export interface FileRoutesById {
   '/dashboard/community': typeof DashboardCommunityRoute
   '/dashboard/emotion': typeof DashboardEmotionRoute
   '/dashboard/journey': typeof DashboardJourneyRoute
+  '/dashboard/mission': typeof DashboardMissionRoute
   '/dashboard/parent': typeof DashboardParentRoute
   '/dashboard/resources': typeof DashboardResourcesRoute
   '/dashboard/settings': typeof DashboardSettingsRoute
@@ -219,6 +228,7 @@ export interface FileRouteTypes {
     | '/dashboard/community'
     | '/dashboard/emotion'
     | '/dashboard/journey'
+    | '/dashboard/mission'
     | '/dashboard/parent'
     | '/dashboard/resources'
     | '/dashboard/settings'
@@ -241,6 +251,7 @@ export interface FileRouteTypes {
     | '/dashboard/community'
     | '/dashboard/emotion'
     | '/dashboard/journey'
+    | '/dashboard/mission'
     | '/dashboard/parent'
     | '/dashboard/resources'
     | '/dashboard/settings'
@@ -264,6 +275,7 @@ export interface FileRouteTypes {
     | '/dashboard/community'
     | '/dashboard/emotion'
     | '/dashboard/journey'
+    | '/dashboard/mission'
     | '/dashboard/parent'
     | '/dashboard/resources'
     | '/dashboard/settings'
@@ -381,6 +393,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DashboardParentRouteImport
       parentRoute: typeof DashboardRoute
     }
+    '/dashboard/mission': {
+      id: '/dashboard/mission'
+      path: '/mission'
+      fullPath: '/dashboard/mission'
+      preLoaderRoute: typeof DashboardMissionRouteImport
+      parentRoute: typeof DashboardRoute
+    }
     '/dashboard/journey': {
       id: '/dashboard/journey'
       path: '/journey'
@@ -446,6 +465,7 @@ interface DashboardRouteChildren {
   DashboardCommunityRoute: typeof DashboardCommunityRoute
   DashboardEmotionRoute: typeof DashboardEmotionRoute
   DashboardJourneyRoute: typeof DashboardJourneyRoute
+  DashboardMissionRoute: typeof DashboardMissionRoute
   DashboardParentRoute: typeof DashboardParentRoute
   DashboardResourcesRoute: typeof DashboardResourcesRoute
   DashboardSettingsRoute: typeof DashboardSettingsRoute
@@ -462,6 +482,7 @@ const DashboardRouteChildren: DashboardRouteChildren = {
   DashboardCommunityRoute: DashboardCommunityRoute,
   DashboardEmotionRoute: DashboardEmotionRoute,
   DashboardJourneyRoute: DashboardJourneyRoute,
+  DashboardMissionRoute: DashboardMissionRoute,
   DashboardParentRoute: DashboardParentRoute,
   DashboardResourcesRoute: DashboardResourcesRoute,
   DashboardSettingsRoute: DashboardSettingsRoute,

@@ -46,7 +46,7 @@ type Item = {
 const ITEMS_BY_ROLE: Record<AppRole | "default", Item[]> = {
   child: [
     { to: "/dashboard",            label: "Dashboard",       icon: LayoutDashboard, exact: true },
-    { to: "/dashboard",            label: "Today's Mission", icon: ClipboardList },
+    { to: "/dashboard/mission",    label: "Today's Mission", icon: ClipboardList },
     { to: "/dashboard/journey",    label: "Journey",         icon: Map },
     { to: "/dashboard/simulation", label: "AI Simulation",   icon: Bot },
     { to: "/dashboard/emotion",    label: "Emotion Training",icon: Smile },

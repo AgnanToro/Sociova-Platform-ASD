@@ -170,9 +170,24 @@ model CommunityPost {
   likes    Int      @default(0)
   comments Int      @default(0)
 
-  createdAt DateTime @default(now()) @map("created_at")
+  createdAt      DateTime         @default(now()) @map("created_at")
+  CommunityReply CommunityReply[]
 
   @@map("community_posts")
+}
+
+model CommunityReply {
+  id        String   @id @default(uuid())
+  postId    String   @map("post_id") @db.VarChar(36)
+  authorId  String   @map("author_id") @db.VarChar(36)
+  role      AppRole?
+  content   String   @db.Text
+  createdAt DateTime @default(now()) @map("created_at")
+
+  post CommunityPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@index([postId, createdAt])
+  @@map("community_replies")
 }
 
 model UserSettings {

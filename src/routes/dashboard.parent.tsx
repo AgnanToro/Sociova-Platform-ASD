@@ -1,82 +1,11 @@
-import { createFileRoute } from "@tanstack/react-router";
+﻿import { createFileRoute } from "@tanstack/react-router";
+import { Activity, ChartLine, HeartPulse, NotebookPen } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { PageHeader } from "@/components/site/page-header";
-import { BookOpen, LineChart, Baby, Settings } from "lucide-react";
-import { loadRoleDashboardData, useSociovaQuery } from "@/lib/sociova-data";
+import { useAuth } from "@/lib/auth";
+import { loadRoleDashboardData, loadRoleDetailData, useSociovaQuery } from "@/lib/sociova-data";
 
-export const Route = createFileRoute("/dashboard/parent")({
-  head: () => ({ meta: [{ title: "Parent Dashboard · Sociova" }] }),
-  component: ParentDashboard,
-});
-
-function ParentDashboard() {
-  const { data, loading, error } = useSociovaQuery(() => loadRoleDashboardData("parent"));
-  const cards = [
-    { icon: Baby, title: "Child Progress", desc: "Pantau perkembangan anak setiap hari." },
-    {
-      icon: BookOpen,
-      title: "Social Story Generator",
-      desc: "Buat cerita sosial adaptif untuk anak.",
-    },
-    { icon: LineChart, title: "Weekly Reports", desc: "Ringkasan mingguan aktivitas belajar." },
-    { icon: Settings, title: "Settings", desc: "Atur profil keluarga dan preferensi." },
-  ];
-  if (loading)
-    return (
-      <StateCard title="Loading parent dashboard" description="Sova sedang memuat progres anak." />
-    );
-  if (error) return <StateCard title="Parent dashboard unavailable" description={error} />;
-  return (
-    <div className="mx-auto max-w-6xl">
-      <PageHeader
-        title="Parent Dashboard"
-        description="Dampingi anak Anda dengan wawasan yang jelas dan alat yang lembut."
-      />
-      {data?.demoMode && (
-        <Card className="mb-4 rounded-2xl border-border/60 bg-card/60 p-4 text-sm text-muted-foreground backdrop-blur-sm">
-          No linked profile yet. Demo data is shown for preview.
-        </Card>
-      )}
-      <div className="mb-4 grid gap-4 md:grid-cols-3">
-        {data?.children.map((child: any) => {
-          const progress = data.progressByChild[child.id] ?? {};
-          return (
-            <Card
-              key={child.id}
-              className="rounded-2xl border-border/60 bg-card/60 p-5 backdrop-blur-sm"
-            >
-              <div className="text-sm text-muted-foreground">Child Progress</div>
-              <div className="mt-1 font-display text-xl font-bold">{child.name}</div>
-              <div className="mt-2 text-sm">
-                Level {progress.level ?? 1} · {progress.xp ?? 0} XP
-              </div>
-            </Card>
-          );
-        })}
-      </div>
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        {cards.map(({ icon: Icon, title, desc }) => (
-          <Card
-            key={title}
-            className="rounded-2xl border-border/60 bg-card/60 p-5 backdrop-blur-sm"
-          >
-            <Icon className="h-6 w-6 text-[color:var(--brand)]" />
-            <h3 className="mt-3 font-display text-base font-bold">{title}</h3>
-            <p className="mt-1 text-sm text-muted-foreground">{desc}</p>
-          </Card>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-function StateCard({ title, description }: { title: string; description: string }) {
-  return (
-    <div className="mx-auto max-w-6xl">
-      <Card className="rounded-2xl border-border/60 bg-card/60 p-6 backdrop-blur-sm">
-        <div className="font-display text-lg font-bold">{title}</div>
-        <p className="mt-1 text-sm text-muted-foreground">{description}</p>
-      </Card>
-    </div>
-  );
-}
+export const Route = createFileRoute("/dashboard/parent")({ component: ParentProgress });
+export function ParentDashboard() { const { user } = useAuth(); const summary = useSociovaQuery(() => loadRoleDashboardData("parent")); const detail = useSociovaQuery(loadRoleDetailData); if (summary.loading || detail.loading) return <State title="Loading dashboard" description="Memuat ringkasan perkembangan anak." />; if (summary.error || detail.error) return <State title="Dashboard unavailable" description={summary.error ?? detail.error ?? "Data tidak tersedia."} />; const child=detail.data?.child; const progress=child ? summary.data?.progressByChild?.[child.id] ?? {} : {}; const latest=detail.data?.weekly?.at(-1); return <div className="mx-auto max-w-7xl space-y-6"><PageHeader title={`Dashboard Orang Tua, ${user?.fullName ?? ""}`} description="Ringkasan perkembangan Bimo dari rumah, sekolah, dan terapi." /><div className="grid gap-4 md:grid-cols-4"><Metric icon={ChartLine} label="Komunikasi" value={`${progress.communication_score ?? 0}%`} /><Metric icon={HeartPulse} label="Empati" value={`${progress.empathy_score ?? 0}%`} /><Metric icon={Activity} label="Aktivitas minggu ini" value={String(latest?.completed_activities ?? 0)} /><Metric icon={NotebookPen} label="Catatan guru" value={String(detail.data?.observations?.length ?? 0)} /></div><div className="grid gap-4 lg:grid-cols-2"><Notes title="Catatan guru terbaru" items={detail.data?.observations ?? []} field="observation" /><Notes title="Catatan terapis terbaru" items={detail.data?.notes ?? []} field="note" /></div></div>; }
+function ParentProgress() { const summary=useSociovaQuery(() => loadRoleDashboardData("parent")); const detail=useSociovaQuery(loadRoleDetailData); if(summary.loading||detail.loading)return <State title="Loading child progress" description="Memuat profil dan laporan anak."/>; const child=detail.data?.child; const progress=child?summary.data?.progressByChild?.[child.id]??{}:{}; return <div className="mx-auto max-w-7xl space-y-6"><PageHeader title="Child Progress" description="Profil Bimo, capaian keterampilan, serta laporan mingguan."/><Card className="rounded-2xl border-border/60 bg-card/60 p-6"><div className="font-display text-2xl font-bold">{child?.name}</div><p className="mt-1 text-sm text-muted-foreground">{child?.age} tahun · {child?.diagnosis_level}</p><p className="mt-4 text-sm text-muted-foreground">{child?.learning_goal}</p><div className="mt-6 grid gap-3 sm:grid-cols-3"><Score label="Komunikasi" value={progress.communication_score}/><Score label="Kepercayaan diri" value={progress.confidence_score}/><Score label="Empati" value={progress.empathy_score}/></div></Card><Notes title="Laporan mingguan" items={detail.data?.weekly ?? []} field="summary"/></div>; }
+function Metric({icon:Icon,label,value}:any){return <Card className="rounded-2xl border-border/60 bg-card/60 p-5"><Icon className="h-5 w-5 text-[color:var(--brand)]"/><div className="mt-3 text-xs text-muted-foreground">{label}</div><div className="font-display text-2xl font-bold">{value}</div></Card>}; function Score({label,value}:any){return <div className="rounded-xl bg-background/40 p-4"><div className="font-display text-2xl font-bold">{value??0}%</div><div className="text-sm text-muted-foreground">{label}</div></div>}; function Notes({title,items,field}:any){return <Card className="rounded-2xl border-border/60 bg-card/60 p-6"><h2 className="font-display text-lg font-bold">{title}</h2><div className="mt-4 space-y-3">{items.length?items.slice(0,3).map((item:any)=><div key={item.id} className="rounded-xl border border-border/60 p-3"><div className="font-medium">{item.title??"Perkembangan mingguan"}</div><p className="mt-1 text-sm text-muted-foreground">{item[field]}</p></div>):<p className="text-sm text-muted-foreground">Belum ada data.</p>}</div></Card>}; function State({title,description}:any){return <div className="mx-auto max-w-6xl"><Card className="rounded-2xl p-6"><div className="font-display text-lg font-bold">{title}</div><p className="mt-1 text-sm text-muted-foreground">{description}</p></Card></div>};

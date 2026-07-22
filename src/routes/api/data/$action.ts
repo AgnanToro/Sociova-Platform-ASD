@@ -1,4 +1,4 @@
-﻿import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import type {} from "@tanstack/react-start";
 import { jwtVerify } from "jose";
 import { prisma } from "@/lib/prisma";
@@ -49,6 +49,13 @@ async function getData(action: string, user: { userId: string; role: string }) {
   if (action === "story" || action === "emotion" || action === "achievements") { const child = await childFor(user); if (!child) return action === "achievements" ? { demoMode: true, progress: null, achievements: [] } : { demoMode: true, [action === "story" ? "stories" : "logs"]: [] }; if (action === "story") return { demoMode: false, stories: toSnake(await prisma.socialStory.findMany({ where: { childId: child.id }, orderBy: { createdAt: "desc" }, take: 5 })) }; if (action === "emotion") return { demoMode: false, logs: toSnake(await prisma.emotionAnalysis.findMany({ where: { childId: child.id }, orderBy: { createdAt: "desc" }, take: 5 })) }; const [progress, earned] = await Promise.all([prisma.learningProgress.findFirst({ where: { childId: child.id } }), prisma.achievement.findMany({ where: { childId: child.id } })]); return { demoMode: false, progress: toSnake(progress), achievements: toSnake(earned.map((badge) => ({ ...badge, earned: true }))) }; }
   if (action === "community") { const posts = await prisma.communityPost.findMany({ orderBy: { createdAt: "desc" }, take: 20 }); return { demoMode: false, posts: toSnake(posts.map((post) => ({ ...post, author: `${post.role ?? "Community"} member`, time: "Baru saja" }))) }; }
   if (action === "resources") return toSnake((await prisma.resource.findMany({ where: { isActive: true }, orderBy: { createdAt: "desc" } })).map((item) => ({ ...item, time: item.category === "Worksheet" ? "PDF" : "5 min read" })));
+  if (action === "settings") {
+    const [profile, settings] = await Promise.all([
+      prisma.userProfile.findUnique({ where: { userId: user.userId } }),
+      prisma.userSettings.findUnique({ where: { userId: user.userId } }),
+    ]);
+    return toSnake({ profile, settings, role: user.role });
+  }
   if (action === "role") return roleDashboard(user);
   if (action === "role-detail") { const child = await childFor(user); if (!child) return {}; const [weekly, observations, notes, recommendations, activities] = await Promise.all([prisma.weeklyProgress.findMany({ where: { childId: child.id }, orderBy: { weekStart: "asc" } }), prisma.teacherObservation.findMany({ where: { childId: child.id }, orderBy: { observedAt: "desc" } }), prisma.therapistNote.findMany({ where: { childId: child.id }, orderBy: { sessionAt: "desc" } }), prisma.recommendation.findMany({ where: { childId: child.id }, orderBy: { createdAt: "desc" } }), prisma.activityHistory.findMany({ where: { childId: child.id }, orderBy: { completedAt: "desc" } })]); return toSnake({ child, weekly, observations, notes, recommendations, activities }); }
   throw new Error("Unknown data action");
@@ -57,6 +64,14 @@ async function getData(action: string, user: { userId: string; role: string }) {
 export const Route = createFileRoute("/api/data/$action")({
   server: { handlers: {
     GET: async ({ request, params }) => { const user = await currentUser(request); return user ? json(await getData(params.action, user)) : json({ error: "Unauthorized" }, 401); },
-    POST: async ({ request, params }) => { const user = await currentUser(request); if (!user) return json({ error: "Unauthorized" }, 401); const body = await request.json(); const child = await childFor(user); if (!child) return json({ saved: false }, 404); if (params.action === "simulation") { await prisma.simulationSession.create({ data: { childId: child.id, scenario: body.scenario, conversation: body.conversation, score: body.score, feedback: body.feedback, strength: body.strength, suggestion: body.suggestion } }); await prisma.activityHistory.create({ data: { childId: child.id, title: `Simulasi: ${body.scenario}`, category: "AI Simulation", score: body.score, detail: body.feedback } }); return json({ saved: true }); } if (params.action === "story") { const title = body.situation.length > 42 ? `${body.situation.slice(0, 42)}...` : body.situation; await prisma.socialStory.create({ data: { childId: child.id, title, situation: body.situation, generatedStory: body.generatedStory } }); return json({ saved: true }); } if (params.action === "emotion") { await prisma.emotionAnalysis.create({ data: { childId: child.id, inputText: body.input_text, detectedEmotion: body.detected_emotion, confidence: body.confidence, recommendation: body.recommendation } }); return json({ saved: true }); } if (params.action === "community") { await prisma.communityPost.create({ data: { authorId: user.userId, role: user.role as any, content: body.content } }); return json({ saved: true }); } return json({ error: "Unsupported action" }, 400); },
+    POST: async ({ request, params }) => { const user = await currentUser(request); if (!user) return json({ error: "Unauthorized" }, 401); const body = await request.json(); const child = await childFor(user); if (!child) return json({ saved: false }, 404); if (params.action === "simulation") { await prisma.simulationSession.create({ data: { childId: child.id, scenario: body.scenario, conversation: body.conversation, score: body.score, feedback: body.feedback, strength: body.strength, suggestion: body.suggestion } }); await prisma.activityHistory.create({ data: { childId: child.id, title: `Simulasi: ${body.scenario}`, category: "AI Simulation", score: body.score, detail: body.feedback } }); return json({ saved: true }); } if (params.action === "story") { const title = body.situation.length > 42 ? `${body.situation.slice(0, 42)}...` : body.situation; await prisma.socialStory.create({ data: { childId: child.id, title, situation: body.situation, generatedStory: body.generatedStory } }); return json({ saved: true }); } if (params.action === "emotion") { await prisma.emotionAnalysis.create({ data: { childId: child.id, inputText: body.input_text, detectedEmotion: body.detected_emotion, confidence: body.confidence, recommendation: body.recommendation } }); return json({ saved: true }); } if (params.action === "community") { await prisma.communityPost.create({ data: { authorId: user.userId, role: user.role as any, content: body.content } }); return json({ saved: true }); }
+      if (params.action === "settings") {
+        await prisma.$transaction([
+          prisma.userProfile.update({ where: { userId: user.userId }, data: { fullName: body.full_name, languageMode: body.language_mode } }),
+          prisma.userSettings.upsert({ where: { userId: user.userId }, update: body.settings, create: { userId: user.userId, ...body.settings } }),
+        ]);
+        return json({ saved: true });
+      }
+      return json({ error: "Unsupported action" }, 400); },
   } },
 });
