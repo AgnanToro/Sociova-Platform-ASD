@@ -15,6 +15,7 @@ import {
   GraduationCap,
   ClipboardList,
   FileText,
+  FileBarChart,
   UserRound,
 } from "lucide-react";
 import { Logo } from "./logo";
@@ -54,7 +55,8 @@ const ITEMS_BY_ROLE: Record<AppRole | "default", Item[]> = {
   parent: [
     { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard, exact: true },
     { to: "/dashboard/parent", label: "Child Progress", icon: Baby },
-    { to: "/dashboard/analytics", label: "Reports", icon: BarChart3 },
+    { to: "/dashboard/report", label: "Weekly Report", icon: FileBarChart },
+    { to: "/dashboard/analytics", label: "Analytics", icon: BarChart3 },
     { to: "/dashboard/resources", label: "Resources", icon: Library },
     { to: "/dashboard/community", label: "Community", icon: Users },
     { to: "/dashboard/settings", label: "Settings", icon: Settings },
@@ -62,8 +64,9 @@ const ITEMS_BY_ROLE: Record<AppRole | "default", Item[]> = {
   teacher: [
     { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard, exact: true },
     { to: "/dashboard/teacher", label: "Students", icon: GraduationCap },
-    { to: "/dashboard/teacher", label: "Observations", icon: ClipboardList },
-    { to: "/dashboard/analytics", label: "Reports", icon: BarChart3 },
+    { to: "/dashboard/observations", label: "Observations", icon: ClipboardList },
+    { to: "/dashboard/report", label: "Weekly Report", icon: FileBarChart },
+    { to: "/dashboard/analytics", label: "Analytics", icon: BarChart3 },
     { to: "/dashboard/resources", label: "Resources", icon: Library },
     { to: "/dashboard/community", label: "Community", icon: Users },
     { to: "/dashboard/settings", label: "Settings", icon: Settings },
@@ -71,7 +74,8 @@ const ITEMS_BY_ROLE: Record<AppRole | "default", Item[]> = {
   therapist: [
     { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard, exact: true },
     { to: "/dashboard/therapist", label: "Clients", icon: UserRound },
-    { to: "/dashboard/therapist", label: "Session Notes", icon: FileText },
+    { to: "/dashboard/session-notes", label: "Session Notes", icon: FileText },
+    { to: "/dashboard/report", label: "Weekly Report", icon: FileBarChart },
     { to: "/dashboard/emotion", label: "Emotion Trends", icon: HeartPulse },
     { to: "/dashboard/resources", label: "Resources", icon: Library },
     { to: "/dashboard/community", label: "Community", icon: Users },

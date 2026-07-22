@@ -121,7 +121,7 @@ function DashboardHome() {
           <div className="mt-5">
             <div className="mb-2 flex justify-between text-xs text-muted-foreground">
               <span>Progress</span>
-              <span>2 / 4 steps</span>
+              <span>{missionProgress.done} / {missionProgress.total} steps</span>
             </div>
             <Progress value={missionProgress.value} className="h-2" />
           </div>
@@ -146,13 +146,17 @@ function DashboardHome() {
             <TrendingUp className="h-4 w-4 text-[color:var(--success)]" />
           </div>
           <div className="mt-4 flex h-24 items-end gap-1.5">
-            {[30, 42, 38, 55, 48, 66, 78].map((v, i) => (
+            {(data.weeklyBars?.length ? data.weeklyBars : [0,0,0,0,0,0,0].map((xp)=>({xp})) ).map((item: any, i: number) => {
+              const max = Math.max(1, ...(data.weeklyBars ?? []).map((bar: any) => bar.xp || 0));
+              const height = Math.max(8, Math.round(((item.xp || 0) / max) * 100));
+              return (
               <div
                 key={i}
                 className="flex-1 rounded-md bg-gradient-to-t from-[color:var(--brand)] to-[color:var(--brand-glow)]"
-                style={{ height: `${v}%` }}
+                style={{ height: `${height}%` }}
+                title={`${item.d ?? ""} ${item.xp ?? 0} XP`}
               />
-            ))}
+            );})}
           </div>
           <div className="mt-1 flex justify-between text-[10px] text-muted-foreground">
             <span>M</span>

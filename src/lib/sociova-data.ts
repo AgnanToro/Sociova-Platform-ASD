@@ -1,4 +1,4 @@
-﻿import { useCallback, useEffect, useState, type DependencyList } from "react";
+import { useCallback, useEffect, useState, type DependencyList } from "react";
 import { getToken } from "@/lib/auth";
 import type { AppRole } from "@/lib/roles";
 import {
@@ -37,9 +37,7 @@ export function useSociovaQuery<T>(
         if (mounted) setData(result);
       })
       .catch((reason) => {
-        if (mounted) {
-          setError(reason instanceof Error ? reason.message : "Unable to load data");
-        }
+        if (mounted) setError(reason instanceof Error ? reason.message : "Unable to load data");
       })
       .finally(() => {
         if (mounted) setLoading(false);
@@ -61,7 +59,6 @@ export function useSociovaQuery<T>(
 async function api<T>(action: string, init?: RequestInit): Promise<T> {
   const token = getToken();
   if (!token) throw new Error("Please sign in to load your Sociova data.");
-
   const response = await fetch(`/api/data/${action}`, {
     ...init,
     headers: {
@@ -70,11 +67,9 @@ async function api<T>(action: string, init?: RequestInit): Promise<T> {
       ...(init?.headers ?? {}),
     },
   });
-
   const contentType = response.headers.get("content-type") ?? "";
   const raw = await response.text();
   let result: any = null;
-
   if (contentType.includes("application/json")) {
     try {
       result = raw ? JSON.parse(raw) : null;
@@ -88,11 +83,7 @@ async function api<T>(action: string, init?: RequestInit): Promise<T> {
         : `Server error (${response.status}). Coba refresh dan login ulang.`,
     );
   }
-
-  if (!response.ok) {
-    throw new Error(result?.error ?? `Unable to load data (${response.status})`);
-  }
-
+  if (!response.ok) throw new Error(result?.error ?? `Unable to load data (${response.status})`);
   return result as T;
 }
 
@@ -116,39 +107,28 @@ export const loadResourcesData = () => api<any[]>("resources").catch(() => demoR
 export const loadRoleDashboardData = (_role: "parent" | "teacher" | "therapist") =>
   api<any>("role");
 export const loadRoleDetailData = () => api<any>("role-detail");
+export const loadAnalyticsData = () => api<any>("analytics");
 export const loadSettingsData = () => api<any>("settings");
+export const loadWeeklyReport = () => api<any>("report");
+export const loadNotificationsData = () => api<any>("notifications");
+
 export const saveSettingsData = (payload: any) =>
-  api<{ saved: boolean }>("settings", {
-    method: "POST",
-    body: JSON.stringify(payload),
-  });
-export const saveSimulationSession = (params: {
-  scenario: string;
-  conversation: Array<{ from: "ai" | "me"; text: string }>;
-  score: number;
-  feedback: string;
-  strength: string;
-  suggestion: string;
-}) =>
-  api<{ saved: boolean }>("simulation", {
-    method: "POST",
-    body: JSON.stringify(params),
-  });
-export const saveSocialStory = (situation: string, generatedStory: string) =>
-  api<{ saved: boolean }>("story", {
+  api<{ saved: boolean }>("settings", { method: "POST", body: JSON.stringify(payload) });
+export const saveSimulationSession = (params: any) =>
+  api<any>("simulation", { method: "POST", body: JSON.stringify(params) });
+export const simulateTurn = (params: any) =>
+  api<any>("simulate-turn", { method: "POST", body: JSON.stringify(params) });
+export const saveSocialStory = (situation: string, generatedStory?: string) =>
+  api<any>("story", {
     method: "POST",
     body: JSON.stringify({ situation, generatedStory }),
   });
-export const saveEmotionAnalysis = (params: {
-  input_text: string;
-  detected_emotion: string;
-  confidence: number;
-  recommendation: string;
-}) =>
-  api<{ saved: boolean }>("emotion", {
-    method: "POST",
-    body: JSON.stringify(params),
-  });
+export const generateStory = (situation: string) =>
+  api<any>("generate-story", { method: "POST", body: JSON.stringify({ situation }) });
+export const saveEmotionAnalysis = (params: any) =>
+  api<any>("emotion", { method: "POST", body: JSON.stringify(params) });
+export const analyzeEmotionRequest = (input_text: string) =>
+  api<any>("analyze-emotion", { method: "POST", body: JSON.stringify({ input_text }) });
 export const createCommunityPost = (content: string) =>
   api<{ saved: boolean }>("community", {
     method: "POST",
@@ -160,16 +140,34 @@ export const createCommunityReply = (postId: string, content: string) =>
     body: JSON.stringify({ post_id: postId, content }),
   });
 export const likeCommunityPost = (postId: string) =>
-  api<{ saved: boolean }>("community-like", {
+  api<{ saved: boolean; already_liked?: boolean }>("community-like", {
     method: "POST",
     body: JSON.stringify({ post_id: postId }),
   });
+export const createObservation = (payload: {
+  title: string;
+  observation: string;
+  support_plan?: string;
+}) => api<{ saved: boolean }>("observation", { method: "POST", body: JSON.stringify(payload) });
+export const createSessionNote = (payload: {
+  title: string;
+  note: string;
+  next_focus?: string;
+}) => api<{ saved: boolean }>("session-note", { method: "POST", body: JSON.stringify(payload) });
+export const createRecommendation = (payload: {
+  title: string;
+  description: string;
+  audience?: string;
+  category?: string;
+}) =>
+  api<{ saved: boolean }>("recommendation", { method: "POST", body: JSON.stringify(payload) });
 
 export function formatShortDate(value: string) {
-  return new Intl.DateTimeFormat("id-ID", {
-    day: "numeric",
-    month: "short",
-  }).format(new Date(value));
+  return new Intl.DateTimeFormat("id-ID", { day: "numeric", month: "short" }).format(
+    new Date(value),
+  );
 }
 
 export type { AppRole };
+
+export const createResource = (payload: { title: string; description: string; category?: string; url?: string; language?: string }) => api<{ saved: boolean }>("resource", { method: "POST", body: JSON.stringify(payload) });

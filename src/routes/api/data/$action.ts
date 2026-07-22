@@ -2,6 +2,13 @@ import { createFileRoute } from "@tanstack/react-router";
 import type {} from "@tanstack/react-start";
 import { jwtVerify } from "jose";
 import { prisma } from "@/lib/prisma";
+import {
+  analyzeEmotion,
+  buildWeeklyBars,
+  generateSocialStory,
+  scoreSimulation,
+} from "@/lib/sociova-ai";
+import { buildWeeklyReportHtml, normalizeReportPayload } from "@/lib/weekly-report";
 
 const demoChild = {
   id: "demo-child",
@@ -34,8 +41,7 @@ const secret = () =>
 
 function relativeTime(value: Date | string) {
   const date = value instanceof Date ? value : new Date(value);
-  const diffMs = Date.now() - date.getTime();
-  const minutes = Math.max(1, Math.round(diffMs / 60000));
+  const minutes = Math.max(1, Math.round((Date.now() - date.getTime()) / 60000));
   if (minutes < 60) return `${minutes} menit lalu`;
   const hours = Math.round(minutes / 60);
   if (hours < 24) return `${hours} jam lalu`;
@@ -122,15 +128,13 @@ async function authorMap(authorIds: string[]) {
   return new Map(profiles.map((profile) => [profile.userId, profile.fullName || "Anggota Sociova"]));
 }
 
-async function loadCommunity() {
+async function loadCommunity(userId: string) {
   const posts = await prisma.communityPost.findMany({
     orderBy: { createdAt: "desc" },
     take: 20,
     include: {
-      replies: {
-        orderBy: { createdAt: "asc" },
-        take: 8,
-      },
+      replies: { orderBy: { createdAt: "asc" }, take: 8 },
+      likesRel: { where: { userId }, select: { id: true } },
     },
   });
   const authorIds = Array.from(
@@ -148,6 +152,7 @@ async function loadCommunity() {
       content: post.content,
       likes: post.likes,
       comments: post.comments,
+      liked_by_me: post.likesRel.length > 0,
       created_at: post.createdAt.toISOString(),
       time: relativeTime(post.createdAt),
       author: authors.get(post.authorId) ?? roleLabel(post.role),
@@ -160,6 +165,92 @@ async function loadCommunity() {
         author: authors.get(reply.authorId) ?? roleLabel(reply.role),
       })),
     })),
+  };
+}
+
+async function analyticsFor(user: { userId: string; role: string }) {
+  const child = await childFor(user);
+  if (!child) {
+    return {
+      demoMode: true,
+      child: demoChild,
+      radar: [],
+      weekly: [],
+      monthly: [],
+      emotionTrends: [],
+      progress: null,
+    };
+  }
+  const [progress, activities, emotions, weekly, sessions] = await Promise.all([
+    prisma.learningProgress.findFirst({ where: { childId: child.id } }),
+    prisma.activityHistory.findMany({
+      where: { childId: child.id },
+      orderBy: { completedAt: "desc" },
+      take: 60,
+    }),
+    prisma.emotionAnalysis.findMany({
+      where: { childId: child.id },
+      orderBy: { createdAt: "desc" },
+      take: 20,
+    }),
+    prisma.weeklyProgress.findMany({
+      where: { childId: child.id },
+      orderBy: { weekStart: "asc" },
+    }),
+    prisma.simulationSession.findMany({
+      where: { childId: child.id },
+      orderBy: { createdAt: "asc" },
+      take: 12,
+    }),
+  ]);
+
+  const radar = [
+    { skill: "Communication", value: progress?.communicationScore ?? 0 },
+    { skill: "Confidence", value: progress?.confidenceScore ?? 0 },
+    { skill: "Empathy", value: progress?.empathyScore ?? 0 },
+    { skill: "Greeting", value: progress?.greetingScore ?? 0 },
+    { skill: "Listening", value: progress?.listeningScore ?? 0 },
+    { skill: "Conversation", value: progress?.conversationScore ?? 0 },
+  ];
+
+  const weeklyBars = buildWeeklyBars(
+    activities.map((item) => ({ completedAt: item.completedAt, score: item.score })),
+  );
+
+  const monthly =
+    weekly.length > 0
+      ? weekly.map((item) => ({
+          m: new Intl.DateTimeFormat("id-ID", { month: "short" }).format(item.weekStart),
+          score: Math.round(
+            (item.communicationScore + item.confidenceScore + item.empathyScore) / 3,
+          ),
+        }))
+      : sessions.map((item) => ({
+          m: new Intl.DateTimeFormat("id-ID", { day: "numeric", month: "short" }).format(
+            item.createdAt,
+          ),
+          score: item.score ?? 0,
+        }));
+
+  const emotionCounts = new Map<string, number>();
+  for (const item of emotions) {
+    const key = item.detectedEmotion || "Lainnya";
+    emotionCounts.set(key, (emotionCounts.get(key) ?? 0) + 1);
+  }
+
+  return {
+    demoMode: false,
+    child: toSnake(child),
+    progress: toSnake(progress),
+    radar,
+    weekly: weeklyBars,
+    monthly,
+    emotionTrends: Array.from(emotionCounts.entries()).map(([label, count]) => ({
+      label,
+      count,
+    })),
+    recentEmotions: toSnake(emotions.slice(0, 8)),
+    weeklyReports: toSnake(weekly),
   };
 }
 
@@ -184,6 +275,7 @@ async function getData(action: string, user: { userId: string; role: string }) {
         recentSessions: [],
         recentStories: [],
         latestEmotion: null,
+        weeklyBars: buildWeeklyBars([]),
         missionProgress: { done: 4, total: 6, value: 67 },
       };
     }
@@ -209,7 +301,7 @@ async function getData(action: string, user: { userId: string; role: string }) {
         prisma.activityHistory.findMany({
           where: { childId: child.id },
           orderBy: { completedAt: "desc" },
-          take: 5,
+          take: 14,
         }),
         prisma.recommendation.findMany({
           where: { childId: child.id, audience: user.role as any },
@@ -218,23 +310,29 @@ async function getData(action: string, user: { userId: string; role: string }) {
         }),
       ]);
     const dailyMission = missions.find((mission) => mission.missionType === "daily") ?? null;
+    const weeklyMission = missions.find((mission) => mission.missionType === "weekly") ?? null;
     return {
       demoMode: false,
       profile: toSnake(profile),
       child: toSnake(child),
       progress: toSnake(progress),
       dailyMission: toSnake(dailyMission),
-      weeklyMission: toSnake(missions.find((mission) => mission.missionType === "weekly") ?? null),
+      weeklyMission: toSnake(weeklyMission),
       recentSessions: toSnake(sessions),
       recentStories: toSnake(stories),
       latestEmotion: toSnake(emotion),
       recentActivity: toSnake(activity),
       recommendations: toSnake(recommendations),
+      weeklyBars: buildWeeklyBars(
+        activity.map((item) => ({ completedAt: item.completedAt, score: item.score })),
+      ),
       missionProgress: {
         done: progress?.completedMissions ?? 0,
-        total: progress?.totalMissions || 1,
+        total: progress?.totalMissions || dailyMission?.targetCount || 1,
         value: Math.round(
-          ((progress?.completedMissions ?? 0) / (progress?.totalMissions || 1)) * 100,
+          ((progress?.completedMissions ?? 0) /
+            (progress?.totalMissions || dailyMission?.targetCount || 1)) *
+            100,
         ),
       },
     };
@@ -293,7 +391,7 @@ async function getData(action: string, user: { userId: string; role: string }) {
           await prisma.emotionAnalysis.findMany({
             where: { childId: child.id },
             orderBy: { createdAt: "desc" },
-            take: 5,
+            take: 8,
           }),
         ),
       };
@@ -309,20 +407,93 @@ async function getData(action: string, user: { userId: string; role: string }) {
     };
   }
 
-  if (action === "community") return loadCommunity();
+  if (action === "community") return loadCommunity(user.userId);
+  if (action === "analytics") return analyticsFor(user);
 
   if (action === "resources") {
+    const resources = await prisma.resource.findMany({
+      where: { isActive: true },
+      orderBy: { createdAt: "desc" },
+    });
     return toSnake(
-      (
-        await prisma.resource.findMany({
-          where: { isActive: true },
-          orderBy: { createdAt: "desc" },
-        })
-      ).map((item) => ({
+      resources.map((item) => ({
         ...item,
         time: item.category === "Worksheet" ? "PDF" : "5 min read",
+        can_open: Boolean(item.url),
       })),
     );
+  }
+
+  if (action === "notifications") {
+    const settings = await prisma.userSettings.findUnique({ where: { userId: user.userId } });
+    const child = await childFor(user);
+    const items: Array<{ id: string; title: string; body: string; time: string; type: string }> = [];
+    if (settings?.dailyMissionReminder !== false) {
+      items.push({
+        id: "mission",
+        title: "Daily mission reminder",
+        body: "Selesaikan misi harian hari ini agar streak tetap berjalan.",
+        time: "Hari ini",
+        type: "mission",
+      });
+    }
+    if (settings?.weeklyProgressReport !== false) {
+      items.push({
+        id: "weekly",
+        title: "Weekly progress report",
+        body: "Laporan mingguan siap dibuka di menu Weekly Report / Analytics.",
+        time: "Minggu ini",
+        type: "report",
+      });
+    }
+    if (settings?.communityReplies) {
+      items.push({
+        id: "community",
+        title: "Community replies",
+        body: "Notifikasi balasan komunitas aktif. Cek menu Community untuk percakapan terbaru.",
+        time: "Baru",
+        type: "community",
+      });
+    }
+    if (child) {
+      const [latestObservation, latestNote, latestActivity] = await Promise.all([
+        prisma.teacherObservation.findFirst({ where: { childId: child.id }, orderBy: { observedAt: "desc" } }),
+        prisma.therapistNote.findFirst({ where: { childId: child.id }, orderBy: { sessionAt: "desc" } }),
+        prisma.activityHistory.findFirst({ where: { childId: child.id }, orderBy: { completedAt: "desc" } }),
+      ]);
+      if (latestObservation) {
+        items.push({
+          id: `obs-${latestObservation.id}`,
+          title: "Observasi guru terbaru",
+          body: latestObservation.title,
+          time: relativeTime(latestObservation.observedAt),
+          type: "observation",
+        });
+      }
+      if (latestNote) {
+        items.push({
+          id: `note-${latestNote.id}`,
+          title: "Catatan terapis terbaru",
+          body: latestNote.title,
+          time: relativeTime(latestNote.sessionAt),
+          type: "session",
+        });
+      }
+      if (latestActivity) {
+        items.push({
+          id: `act-${latestActivity.id}`,
+          title: "Aktivitas terbaru",
+          body: latestActivity.title,
+          time: relativeTime(latestActivity.completedAt),
+          type: "activity",
+        });
+      }
+    }
+    return {
+      settings: toSnake(settings),
+      items,
+      unread: items.length,
+    };
   }
 
   if (action === "settings") {
@@ -335,32 +506,76 @@ async function getData(action: string, user: { userId: string; role: string }) {
 
   if (action === "role") return roleDashboard(user);
 
-  if (action === "role-detail") {
+  if (action === "role-detail" || action === "report") {
     const child = await childFor(user);
     if (!child) return {};
-    const [weekly, observations, notes, recommendations, activities] = await Promise.all([
-      prisma.weeklyProgress.findMany({
-        where: { childId: child.id },
-        orderBy: { weekStart: "asc" },
-      }),
-      prisma.teacherObservation.findMany({
-        where: { childId: child.id },
-        orderBy: { observedAt: "desc" },
-      }),
-      prisma.therapistNote.findMany({
-        where: { childId: child.id },
-        orderBy: { sessionAt: "desc" },
-      }),
-      prisma.recommendation.findMany({
-        where: { childId: child.id },
-        orderBy: { createdAt: "desc" },
-      }),
-      prisma.activityHistory.findMany({
-        where: { childId: child.id },
-        orderBy: { completedAt: "desc" },
-      }),
-    ]);
-    return toSnake({ child, weekly, observations, notes, recommendations, activities });
+    const [profile, progress, weekly, observations, notes, recommendations, activities] =
+      await Promise.all([
+        prisma.userProfile.findUnique({ where: { userId: user.userId } }),
+        prisma.learningProgress.findFirst({ where: { childId: child.id } }),
+        prisma.weeklyProgress.findMany({
+          where: { childId: child.id },
+          orderBy: { weekStart: "asc" },
+        }),
+        prisma.teacherObservation.findMany({
+          where: { childId: child.id },
+          orderBy: { observedAt: "desc" },
+        }),
+        prisma.therapistNote.findMany({
+          where: { childId: child.id },
+          orderBy: { sessionAt: "desc" },
+        }),
+        prisma.recommendation.findMany({
+          where: { childId: child.id },
+          orderBy: { createdAt: "desc" },
+        }),
+        prisma.activityHistory.findMany({
+          where: { childId: child.id },
+          orderBy: { completedAt: "desc" },
+        }),
+      ]);
+
+    if (action === "report") {
+      const generatedAt = new Date().toISOString();
+      const base = {
+        childName: child.name,
+        role: user.role,
+        generatedBy: profile?.fullName || user.email,
+        generatedAt,
+        progress,
+        weekly,
+        activities,
+        observations,
+        notes,
+        recommendations,
+      };
+      const html = buildWeeklyReportHtml(base);
+      const normalized = normalizeReportPayload(base);
+      return {
+        html,
+        child: toSnake(child),
+        generated_by: base.generatedBy,
+        generated_at: generatedAt,
+        role: user.role,
+        progress: toSnake(progress),
+        weekly: toSnake(weekly),
+        activities: toSnake(activities),
+        observations: toSnake(observations),
+        notes: toSnake(notes),
+        recommendations: toSnake(recommendations),
+        summary: normalized.progress,
+      };
+    }
+
+    return toSnake({
+      child,
+      progress,
+      weekly,
+      observations,
+      notes,
+      recommendations,
+      activities,
+    });
   }
 
   throw new Error("Unknown data action");
@@ -440,26 +655,80 @@ export const Route = createFileRoute("/api/data/$action")({
           if (action === "community-like") {
             const postId = String(body.post_id ?? body.postId ?? "");
             if (!postId) return json({ error: "Post tidak valid" }, 400);
-            await prisma.communityPost.update({
-              where: { id: postId },
-              data: { likes: { increment: 1 } },
+            const existing = await prisma.communityLike.findUnique({
+              where: { postId_userId: { postId, userId: user.userId } },
             });
-            return json({ saved: true });
+            if (existing) {
+              return json({ saved: true, already_liked: true });
+            }
+            await prisma.$transaction([
+              prisma.communityLike.create({
+                data: { postId, userId: user.userId },
+              }),
+              prisma.communityPost.update({
+                where: { id: postId },
+                data: { likes: { increment: 1 } },
+              }),
+            ]);
+            return json({ saved: true, already_liked: false });
+          }
+
+          if (action === "resource") {
+            if (!["parent", "teacher", "therapist"].includes(user.role)) {
+              return json({ error: "Hanya parent/guru/terapis yang bisa menambah resource" }, 403);
+            }
+            const title = String(body.title ?? "").trim();
+            const description = String(body.description ?? "").trim();
+            const category = String(body.category ?? "Guide").trim() || "Guide";
+            const url = String(body.url ?? "").trim() || null;
+            if (!title || !description) return json({ error: "Judul dan deskripsi wajib diisi" }, 400);
+            const created = await prisma.resource.create({
+              data: {
+                title,
+                description,
+                category,
+                url,
+                language: String(body.language ?? "id"),
+                createdBy: user.userId,
+              },
+            });
+            return json({ saved: true, resource: toSnake(created) });
+          }
+
+          if (action === "analyze-emotion") {
+            return json(analyzeEmotion(String(body.input_text ?? body.text ?? "")));
+          }
+
+          if (action === "simulate-turn") {
+            return json(
+              scoreSimulation({
+                scenario: String(body.scenario ?? ""),
+                conversation: body.conversation ?? [],
+              }),
+            );
+          }
+
+          if (action === "generate-story") {
+            return json(generateSocialStory(String(body.situation ?? "")));
           }
 
           const child = await childFor(user);
           if (!child) return json({ saved: false, error: "Profil anak belum terhubung" }, 404);
 
           if (action === "simulation") {
+            const scored = scoreSimulation({
+              scenario: body.scenario,
+              conversation: body.conversation ?? [],
+            });
             await prisma.simulationSession.create({
               data: {
                 childId: child.id,
                 scenario: body.scenario,
                 conversation: body.conversation,
-                score: body.score,
-                feedback: body.feedback,
-                strength: body.strength,
-                suggestion: body.suggestion,
+                score: body.score ?? scored.score,
+                feedback: body.feedback ?? scored.feedback,
+                strength: body.strength ?? scored.strength,
+                suggestion: body.suggestion ?? scored.suggestion,
               },
             });
             await prisma.activityHistory.create({
@@ -467,35 +736,135 @@ export const Route = createFileRoute("/api/data/$action")({
                 childId: child.id,
                 title: `Simulasi: ${body.scenario}`,
                 category: "AI Simulation",
-                score: body.score,
-                detail: body.feedback,
+                score: body.score ?? scored.score,
+                detail: body.feedback ?? scored.feedback,
               },
             });
-            return json({ saved: true });
+            const progress = await prisma.learningProgress.findFirst({
+              where: { childId: child.id },
+            });
+            if (progress) {
+              await prisma.learningProgress.update({
+                where: { id: progress.id },
+                data: {
+                  xp: progress.xp + 80,
+                  completedMissions: Math.min(
+                    progress.completedMissions + 1,
+                    progress.totalMissions || 6,
+                  ),
+                  communicationScore: Math.max(
+                    progress.communicationScore,
+                    body.score ?? scored.score,
+                  ),
+                  conversationScore: Math.max(
+                    progress.conversationScore,
+                    body.score ?? scored.score,
+                  ),
+                },
+              });
+            }
+            return json({ saved: true, ...scored });
           }
 
           if (action === "story") {
+            const generated =
+              body.generatedStory ||
+              generateSocialStory(String(body.situation ?? "")).generatedStory;
             const title =
-              body.situation.length > 42 ? `${body.situation.slice(0, 42)}...` : body.situation;
+              body.title ||
+              (body.situation?.length > 42
+                ? `${body.situation.slice(0, 42)}...`
+                : body.situation);
             await prisma.socialStory.create({
               data: {
                 childId: child.id,
                 title,
                 situation: body.situation,
-                generatedStory: body.generatedStory,
+                generatedStory: generated,
+              },
+            });
+            await prisma.activityHistory.create({
+              data: {
+                childId: child.id,
+                title: `Cerita Sosial: ${title}`,
+                category: "Social Story",
+                detail: body.situation,
+                score: 88,
+              },
+            });
+            return json({ saved: true, generatedStory: generated, title });
+          }
+
+          if (action === "emotion") {
+            const analyzed =
+              body.detected_emotion && body.recommendation
+                ? {
+                    label: body.detected_emotion,
+                    confidence: body.confidence,
+                    rec: body.recommendation,
+                  }
+                : analyzeEmotion(String(body.input_text ?? ""));
+            await prisma.emotionAnalysis.create({
+              data: {
+                childId: child.id,
+                inputText: body.input_text,
+                detectedEmotion: analyzed.label,
+                confidence: analyzed.confidence,
+                recommendation: analyzed.rec,
+              },
+            });
+            await prisma.activityHistory.create({
+              data: {
+                childId: child.id,
+                title: `Mengenali Perasaan ${analyzed.label}`,
+                category: "Emotion",
+                detail: body.input_text,
+                score: analyzed.confidence,
+              },
+            });
+            return json({ saved: true, ...analyzed });
+          }
+
+          if (action === "observation") {
+            if (user.role !== "teacher") return json({ error: "Hanya guru" }, 403);
+            await prisma.teacherObservation.create({
+              data: {
+                childId: child.id,
+                teacherId: user.userId,
+                title: String(body.title ?? "Observasi kelas"),
+                observation: String(body.observation ?? ""),
+                supportPlan: body.support_plan ?? body.supportPlan ?? null,
               },
             });
             return json({ saved: true });
           }
 
-          if (action === "emotion") {
-            await prisma.emotionAnalysis.create({
+          if (action === "session-note") {
+            if (user.role !== "therapist") return json({ error: "Hanya terapis" }, 403);
+            await prisma.therapistNote.create({
               data: {
                 childId: child.id,
-                inputText: body.input_text,
-                detectedEmotion: body.detected_emotion,
-                confidence: body.confidence,
-                recommendation: body.recommendation,
+                therapistId: user.userId,
+                title: String(body.title ?? "Catatan sesi"),
+                note: String(body.note ?? ""),
+                nextFocus: body.next_focus ?? body.nextFocus ?? null,
+              },
+            });
+            return json({ saved: true });
+          }
+
+          if (action === "recommendation") {
+            if (user.role !== "therapist" && user.role !== "teacher") {
+              return json({ error: "Tidak diizinkan" }, 403);
+            }
+            await prisma.recommendation.create({
+              data: {
+                childId: child.id,
+                authorId: user.userId,
+                audience: (body.audience as any) ?? "parent",
+                title: String(body.title ?? "Rekomendasi"),
+                description: String(body.description ?? ""),
+                category: String(body.category ?? "Support"),
               },
             });
             return json({ saved: true });

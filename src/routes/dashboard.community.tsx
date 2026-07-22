@@ -1,4 +1,4 @@
-﻿import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { Heart, MessageCircle, MessageSquarePlus, Send } from "lucide-react";
 import { toast } from "sonner";
@@ -83,10 +83,10 @@ function CommunityPage() {
     }
   };
 
-  const submitLike = async (postId: string) => {
+  const submitLike = async (postId: string, alreadyLiked?: boolean) => { if (alreadyLiked) { toast.message("Kamu sudah menyukai status ini"); return; }
     setLikingId(postId);
     try {
-      await likeCommunityPost(postId);
+      const result = await likeCommunityPost(postId); if ((result as any).already_liked) toast.message("Kamu sudah menyukai status ini"); else toast.success("Disukai");
       refetch();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Gagal menyukai status");
@@ -156,10 +156,10 @@ function CommunityPage() {
               <button
                 type="button"
                 disabled={likingId === post.id}
-                onClick={() => submitLike(post.id)}
-                className="inline-flex items-center gap-1 hover:text-foreground"
+                onClick={() => submitLike(post.id, post.liked_by_me)}
+                className={`inline-flex items-center gap-1 hover:text-foreground ${post.liked_by_me ? "text-[color:var(--brand)]" : ""}`}
               >
-                <Heart className="h-3.5 w-3.5" /> {post.likes ?? 0}
+                <Heart className={`h-3.5 w-3.5 ${post.liked_by_me ? "fill-current" : ""}`} /> {post.likes ?? 0}
               </button>
               <span className="inline-flex items-center gap-1">
                 <MessageCircle className="h-3.5 w-3.5" /> {post.comments ?? post.replies?.length ?? 0}

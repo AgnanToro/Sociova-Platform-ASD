@@ -20,8 +20,11 @@ import { Route as DashboardTeacherRouteImport } from './routes/dashboard.teacher
 import { Route as DashboardStoryRouteImport } from './routes/dashboard.story'
 import { Route as DashboardSimulationRouteImport } from './routes/dashboard.simulation'
 import { Route as DashboardSettingsRouteImport } from './routes/dashboard.settings'
+import { Route as DashboardSessionNotesRouteImport } from './routes/dashboard.session-notes'
 import { Route as DashboardResourcesRouteImport } from './routes/dashboard.resources'
+import { Route as DashboardReportRouteImport } from './routes/dashboard.report'
 import { Route as DashboardParentRouteImport } from './routes/dashboard.parent'
+import { Route as DashboardObservationsRouteImport } from './routes/dashboard.observations'
 import { Route as DashboardMissionRouteImport } from './routes/dashboard.mission'
 import { Route as DashboardJourneyRouteImport } from './routes/dashboard.journey'
 import { Route as DashboardEmotionRouteImport } from './routes/dashboard.emotion'
@@ -87,14 +90,29 @@ const DashboardSettingsRoute = DashboardSettingsRouteImport.update({
   path: '/settings',
   getParentRoute: () => DashboardRoute,
 } as any)
+const DashboardSessionNotesRoute = DashboardSessionNotesRouteImport.update({
+  id: '/session-notes',
+  path: '/session-notes',
+  getParentRoute: () => DashboardRoute,
+} as any)
 const DashboardResourcesRoute = DashboardResourcesRouteImport.update({
   id: '/resources',
   path: '/resources',
   getParentRoute: () => DashboardRoute,
 } as any)
+const DashboardReportRoute = DashboardReportRouteImport.update({
+  id: '/report',
+  path: '/report',
+  getParentRoute: () => DashboardRoute,
+} as any)
 const DashboardParentRoute = DashboardParentRouteImport.update({
   id: '/parent',
   path: '/parent',
+  getParentRoute: () => DashboardRoute,
+} as any)
+const DashboardObservationsRoute = DashboardObservationsRouteImport.update({
+  id: '/observations',
+  path: '/observations',
   getParentRoute: () => DashboardRoute,
 } as any)
 const DashboardMissionRoute = DashboardMissionRouteImport.update({
@@ -155,8 +173,11 @@ export interface FileRoutesByFullPath {
   '/dashboard/emotion': typeof DashboardEmotionRoute
   '/dashboard/journey': typeof DashboardJourneyRoute
   '/dashboard/mission': typeof DashboardMissionRoute
+  '/dashboard/observations': typeof DashboardObservationsRoute
   '/dashboard/parent': typeof DashboardParentRoute
+  '/dashboard/report': typeof DashboardReportRoute
   '/dashboard/resources': typeof DashboardResourcesRoute
+  '/dashboard/session-notes': typeof DashboardSessionNotesRoute
   '/dashboard/settings': typeof DashboardSettingsRoute
   '/dashboard/simulation': typeof DashboardSimulationRoute
   '/dashboard/story': typeof DashboardStoryRoute
@@ -178,8 +199,11 @@ export interface FileRoutesByTo {
   '/dashboard/emotion': typeof DashboardEmotionRoute
   '/dashboard/journey': typeof DashboardJourneyRoute
   '/dashboard/mission': typeof DashboardMissionRoute
+  '/dashboard/observations': typeof DashboardObservationsRoute
   '/dashboard/parent': typeof DashboardParentRoute
+  '/dashboard/report': typeof DashboardReportRoute
   '/dashboard/resources': typeof DashboardResourcesRoute
+  '/dashboard/session-notes': typeof DashboardSessionNotesRoute
   '/dashboard/settings': typeof DashboardSettingsRoute
   '/dashboard/simulation': typeof DashboardSimulationRoute
   '/dashboard/story': typeof DashboardStoryRoute
@@ -203,8 +227,11 @@ export interface FileRoutesById {
   '/dashboard/emotion': typeof DashboardEmotionRoute
   '/dashboard/journey': typeof DashboardJourneyRoute
   '/dashboard/mission': typeof DashboardMissionRoute
+  '/dashboard/observations': typeof DashboardObservationsRoute
   '/dashboard/parent': typeof DashboardParentRoute
+  '/dashboard/report': typeof DashboardReportRoute
   '/dashboard/resources': typeof DashboardResourcesRoute
+  '/dashboard/session-notes': typeof DashboardSessionNotesRoute
   '/dashboard/settings': typeof DashboardSettingsRoute
   '/dashboard/simulation': typeof DashboardSimulationRoute
   '/dashboard/story': typeof DashboardStoryRoute
@@ -229,8 +256,11 @@ export interface FileRouteTypes {
     | '/dashboard/emotion'
     | '/dashboard/journey'
     | '/dashboard/mission'
+    | '/dashboard/observations'
     | '/dashboard/parent'
+    | '/dashboard/report'
     | '/dashboard/resources'
+    | '/dashboard/session-notes'
     | '/dashboard/settings'
     | '/dashboard/simulation'
     | '/dashboard/story'
@@ -252,8 +282,11 @@ export interface FileRouteTypes {
     | '/dashboard/emotion'
     | '/dashboard/journey'
     | '/dashboard/mission'
+    | '/dashboard/observations'
     | '/dashboard/parent'
+    | '/dashboard/report'
     | '/dashboard/resources'
+    | '/dashboard/session-notes'
     | '/dashboard/settings'
     | '/dashboard/simulation'
     | '/dashboard/story'
@@ -276,8 +309,11 @@ export interface FileRouteTypes {
     | '/dashboard/emotion'
     | '/dashboard/journey'
     | '/dashboard/mission'
+    | '/dashboard/observations'
     | '/dashboard/parent'
+    | '/dashboard/report'
     | '/dashboard/resources'
+    | '/dashboard/session-notes'
     | '/dashboard/settings'
     | '/dashboard/simulation'
     | '/dashboard/story'
@@ -379,6 +415,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DashboardSettingsRouteImport
       parentRoute: typeof DashboardRoute
     }
+    '/dashboard/session-notes': {
+      id: '/dashboard/session-notes'
+      path: '/session-notes'
+      fullPath: '/dashboard/session-notes'
+      preLoaderRoute: typeof DashboardSessionNotesRouteImport
+      parentRoute: typeof DashboardRoute
+    }
     '/dashboard/resources': {
       id: '/dashboard/resources'
       path: '/resources'
@@ -386,11 +429,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DashboardResourcesRouteImport
       parentRoute: typeof DashboardRoute
     }
+    '/dashboard/report': {
+      id: '/dashboard/report'
+      path: '/report'
+      fullPath: '/dashboard/report'
+      preLoaderRoute: typeof DashboardReportRouteImport
+      parentRoute: typeof DashboardRoute
+    }
     '/dashboard/parent': {
       id: '/dashboard/parent'
       path: '/parent'
       fullPath: '/dashboard/parent'
       preLoaderRoute: typeof DashboardParentRouteImport
+      parentRoute: typeof DashboardRoute
+    }
+    '/dashboard/observations': {
+      id: '/dashboard/observations'
+      path: '/observations'
+      fullPath: '/dashboard/observations'
+      preLoaderRoute: typeof DashboardObservationsRouteImport
       parentRoute: typeof DashboardRoute
     }
     '/dashboard/mission': {
@@ -466,8 +523,11 @@ interface DashboardRouteChildren {
   DashboardEmotionRoute: typeof DashboardEmotionRoute
   DashboardJourneyRoute: typeof DashboardJourneyRoute
   DashboardMissionRoute: typeof DashboardMissionRoute
+  DashboardObservationsRoute: typeof DashboardObservationsRoute
   DashboardParentRoute: typeof DashboardParentRoute
+  DashboardReportRoute: typeof DashboardReportRoute
   DashboardResourcesRoute: typeof DashboardResourcesRoute
+  DashboardSessionNotesRoute: typeof DashboardSessionNotesRoute
   DashboardSettingsRoute: typeof DashboardSettingsRoute
   DashboardSimulationRoute: typeof DashboardSimulationRoute
   DashboardStoryRoute: typeof DashboardStoryRoute
@@ -483,8 +543,11 @@ const DashboardRouteChildren: DashboardRouteChildren = {
   DashboardEmotionRoute: DashboardEmotionRoute,
   DashboardJourneyRoute: DashboardJourneyRoute,
   DashboardMissionRoute: DashboardMissionRoute,
+  DashboardObservationsRoute: DashboardObservationsRoute,
   DashboardParentRoute: DashboardParentRoute,
+  DashboardReportRoute: DashboardReportRoute,
   DashboardResourcesRoute: DashboardResourcesRoute,
+  DashboardSessionNotesRoute: DashboardSessionNotesRoute,
   DashboardSettingsRoute: DashboardSettingsRoute,
   DashboardSimulationRoute: DashboardSimulationRoute,
   DashboardStoryRoute: DashboardStoryRoute,

@@ -244,3 +244,15 @@
 @utility animate-breath {
   animation: breath 4.5s ease-in-out infinite;
 }
+
+/* Accessibility helpers driven by Settings */
+html.a11y-large-font { font-size: 18px; }
+html.a11y-high-contrast { filter: contrast(1.15); }
+html.a11y-high-contrast body { background: #05070c; color: #f8fbff; }
+html.a11y-reduce-motion *,
+html.a11y-reduce-motion *::before,
+html.a11y-reduce-motion *::after {
+  animation: none !important;
+  transition: none !important;
+  scroll-behavior: auto !important;
+}

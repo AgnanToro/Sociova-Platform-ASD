@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+﻿import { createFileRoute, Link } from "@tanstack/react-router";
 import { Card } from "@/components/ui/card";
 import { PageHeader } from "@/components/site/page-header";
 import {
@@ -17,40 +17,49 @@ import {
   Bar,
   CartesianGrid,
 } from "recharts";
+import { loadAnalyticsData, useSociovaQuery } from "@/lib/sociova-data";
+import { useAuth } from "@/lib/auth";
+import { Button } from "@/components/ui/button";
 
 export const Route = createFileRoute("/dashboard/analytics")({ component: AnalyticsPage });
 
-const radar = [
-  { skill: "Communication", value: 78 },
-  { skill: "Confidence", value: 62 },
-  { skill: "Empathy", value: 84 },
-  { skill: "Greeting", value: 90 },
-  { skill: "Listening", value: 70 },
-  { skill: "Conversation", value: 66 },
-];
-
-const weekly = [
-  { d: "Mon", xp: 30 },
-  { d: "Tue", xp: 42 },
-  { d: "Wed", xp: 38 },
-  { d: "Thu", xp: 55 },
-  { d: "Fri", xp: 48 },
-  { d: "Sat", xp: 66 },
-  { d: "Sun", xp: 78 },
-];
-
-const monthly = Array.from({ length: 12 }).map((_, i) => ({
-  m: ["J", "F", "M", "A", "M", "J", "J", "A", "S", "O", "N", "D"][i],
-  score: 40 + Math.round(Math.sin(i / 2) * 15 + i * 2),
-}));
-
 function AnalyticsPage() {
+  const { role } = useAuth();
+  const { data, loading, error } = useSociovaQuery(loadAnalyticsData);
+
+  if (loading) return <State title="Loading analytics" description="Memuat tren perkembangan dari MySQL." />;
+  if (error) return <State title="Analytics unavailable" description={error} />;
+
+  const radar = data?.radar?.length
+    ? data.radar
+    : [
+        { skill: "Communication", value: 0 },
+        { skill: "Confidence", value: 0 },
+        { skill: "Empathy", value: 0 },
+        { skill: "Greeting", value: 0 },
+        { skill: "Listening", value: 0 },
+        { skill: "Conversation", value: 0 },
+      ];
+  const weekly = data?.weekly?.length ? data.weekly : [{ d: "M", xp: 0 }];
+  const monthly = data?.monthly?.length ? data.monthly : [{ m: "-", score: 0 }];
+  const emotionTrends = data?.emotionTrends ?? [];
+
   return (
-    <div className="mx-auto max-w-7xl">
+    <div className="mx-auto max-w-7xl space-y-4">
       <PageHeader
-        title="Analytics"
-        description="Track skill growth over time — across every dimension."
+        title={role === "teacher" ? "Class Analytics" : role === "parent" ? "Progress Analytics" : "Analytics"}
+        description={
+          data?.child?.name
+            ? `Data perkembangan real untuk ${data.child.name}.`
+            : "Track skill growth over time from Sociova database."
+        }
+        actions={
+          <Button asChild className="rounded-full btn-brand border-0">
+            <Link to="/dashboard/report">Buka Laporan Mingguan</Link>
+          </Button>
+        }
       />
+
       <div className="grid gap-4 lg:grid-cols-2">
         <Card className="rounded-2xl border-border/60 bg-card/60 p-6 backdrop-blur-sm">
           <div className="mb-4 font-semibold">Skill radar</div>
@@ -58,41 +67,23 @@ function AnalyticsPage() {
             <ResponsiveContainer width="100%" height="100%">
               <RadarChart data={radar}>
                 <PolarGrid stroke="var(--border)" />
-                <PolarAngleAxis
-                  dataKey="skill"
-                  tick={{ fill: "var(--muted-foreground)", fontSize: 12 }}
-                />
-                <PolarRadiusAxis
-                  angle={30}
-                  domain={[0, 100]}
-                  tick={{ fill: "var(--muted-foreground)", fontSize: 10 }}
-                />
-                <Radar
-                  dataKey="value"
-                  stroke="var(--brand)"
-                  fill="var(--brand)"
-                  fillOpacity={0.35}
-                />
+                <PolarAngleAxis dataKey="skill" tick={{ fill: "var(--muted-foreground)", fontSize: 12 }} />
+                <PolarRadiusAxis angle={30} domain={[0, 100]} tick={{ fill: "var(--muted-foreground)", fontSize: 10 }} />
+                <Radar dataKey="value" stroke="var(--brand)" fill="var(--brand)" fillOpacity={0.35} />
               </RadarChart>
             </ResponsiveContainer>
           </div>
         </Card>
 
         <Card className="rounded-2xl border-border/60 bg-card/60 p-6 backdrop-blur-sm">
-          <div className="mb-4 font-semibold">Weekly XP</div>
+          <div className="mb-4 font-semibold">Weekly XP / Activity</div>
           <div className="h-[320px]">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={weekly}>
                 <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
                 <XAxis dataKey="d" tick={{ fill: "var(--muted-foreground)", fontSize: 12 }} />
                 <YAxis tick={{ fill: "var(--muted-foreground)", fontSize: 12 }} />
-                <Tooltip
-                  contentStyle={{
-                    background: "var(--card)",
-                    border: "1px solid var(--border)",
-                    borderRadius: 12,
-                  }}
-                />
+                <Tooltip contentStyle={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: 12 }} />
                 <Bar dataKey="xp" fill="var(--brand)" radius={[8, 8, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
@@ -100,32 +91,45 @@ function AnalyticsPage() {
         </Card>
 
         <Card className="lg:col-span-2 rounded-2xl border-border/60 bg-card/60 p-6 backdrop-blur-sm">
-          <div className="mb-4 font-semibold">Monthly score trend</div>
+          <div className="mb-4 font-semibold">Score trend</div>
           <div className="h-[280px]">
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={monthly}>
                 <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
                 <XAxis dataKey="m" tick={{ fill: "var(--muted-foreground)", fontSize: 12 }} />
                 <YAxis tick={{ fill: "var(--muted-foreground)", fontSize: 12 }} />
-                <Tooltip
-                  contentStyle={{
-                    background: "var(--card)",
-                    border: "1px solid var(--border)",
-                    borderRadius: 12,
-                  }}
-                />
-                <Line
-                  type="monotone"
-                  dataKey="score"
-                  stroke="var(--brand)"
-                  strokeWidth={3}
-                  dot={{ fill: "var(--brand)" }}
-                />
+                <Tooltip contentStyle={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: 12 }} />
+                <Line type="monotone" dataKey="score" stroke="var(--brand)" strokeWidth={3} dot={{ fill: "var(--brand)" }} />
               </LineChart>
             </ResponsiveContainer>
           </div>
         </Card>
+
+        {emotionTrends.length > 0 && (
+          <Card className="lg:col-span-2 rounded-2xl border-border/60 bg-card/60 p-6 backdrop-blur-sm">
+            <div className="mb-4 font-semibold">Emotion distribution</div>
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+              {emotionTrends.map((item: any) => (
+                <div key={item.label} className="rounded-xl border border-border/60 bg-background/40 p-4">
+                  <div className="text-sm text-muted-foreground">{item.label}</div>
+                  <div className="mt-1 font-display text-2xl font-bold">{item.count}</div>
+                </div>
+              ))}
+            </div>
+          </Card>
+        )}
       </div>
+    </div>
+  );
+}
+
+function State({ title, description }: { title: string; description: string }) {
+  return (
+    <div className="mx-auto max-w-7xl">
+      <Card className="rounded-2xl border-border/60 bg-card/60 p-6">
+        <div className="font-display text-lg font-bold">{title}</div>
+        <p className="mt-1 text-sm text-muted-foreground">{description}</p>
+      </Card>
     </div>
   );
 }
