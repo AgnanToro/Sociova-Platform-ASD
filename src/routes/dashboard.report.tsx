@@ -1,4 +1,5 @@
 ﻿import { createFileRoute } from "@tanstack/react-router";
+import { useState } from "react";
 import { Download, FileText } from "lucide-react";
 import { toast } from "sonner";
 import { Card } from "@/components/ui/card";
@@ -7,6 +8,13 @@ import { PageHeader } from "@/components/site/page-header";
 import { loadWeeklyReport, useSociovaQuery, formatShortDate } from "@/lib/sociova-data";
 import { useAuth } from "@/lib/auth";
 import { normalizeReportPayload } from "@/lib/weekly-report";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 export const Route = createFileRoute("/dashboard/report")({
   head: () => ({ meta: [{ title: "Weekly Report · Sociova" }] }),
@@ -15,7 +23,8 @@ export const Route = createFileRoute("/dashboard/report")({
 
 function ReportPage() {
   const { user, role } = useAuth();
-  const { data, loading, error } = useSociovaQuery(loadWeeklyReport);
+  const [childId, setChildId] = useState<string>();
+  const { data, loading, error } = useSociovaQuery(() => loadWeeklyReport(childId), [childId]);
 
   const downloadPdf = () => {
     if (!data?.html) {
@@ -61,13 +70,29 @@ function ReportPage() {
     <div className="mx-auto max-w-6xl space-y-4">
       <PageHeader
         title="Laporan Mingguan"
-        description={`Tampilan web laporan perkembangan ${report.childName}. Unduh PDF lewat tombol di kanan.`}
+        description={`Tampilan web laporan perkembangan ${report.childName}. Pilih anak bila Anda menangani lebih dari satu anak, lalu unduh PDF.`}
         actions={
           <Button className="rounded-full btn-brand border-0" onClick={downloadPdf}>
             <Download className="mr-2 h-4 w-4" /> Download PDF
           </Button>
         }
       />
+
+      {(data?.children?.length ?? 0) > 1 && (
+        <Card className="rounded-2xl border-border/60 bg-card/60 p-5">
+          <label className="text-sm font-medium" htmlFor="report-child">Pilih anak</label>
+          <Select value={data?.child?.id ?? childId} onValueChange={setChildId}>
+            <SelectTrigger id="report-child" className="mt-2 max-w-sm rounded-xl">
+              <SelectValue placeholder="Pilih anak" />
+            </SelectTrigger>
+            <SelectContent>
+              {data.children.map((child: { id: string; name: string }) => (
+                <SelectItem key={child.id} value={child.id}>{child.name}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </Card>
+      )}
 
       <Card className="rounded-2xl border-border/60 bg-card/60 p-5">
         <div className="flex items-start gap-3">

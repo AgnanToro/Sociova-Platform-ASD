@@ -91,7 +91,7 @@ async function currentUser(request: Request) {
   }
 }
 
-async function childFor(user: { userId: string; role: string }) {
+async function childFor(user: { userId: string; role: string }, childId?: string | null) {
   const where =
     user.role === "child"
       ? { userId: user.userId }
@@ -100,7 +100,22 @@ async function childFor(user: { userId: string; role: string }) {
         : user.role === "teacher"
           ? { teacherId: user.userId }
           : { therapistId: user.userId };
+  if (childId && user.role !== "child") {
+    return prisma.childProfile.findFirst({ where: { ...where, id: childId } });
+  }
   return prisma.childProfile.findFirst({ where, orderBy: { createdAt: "asc" } });
+}
+
+async function childrenFor(user: { userId: string; role: string }) {
+  if (user.role === "child") {
+    const child = await childFor(user);
+    return child ? [child] : [];
+  }
+  const field = user.role === "parent" ? "parentId" : user.role === "teacher" ? "teacherId" : "therapistId";
+  return prisma.childProfile.findMany({
+    where: { [field]: user.userId },
+    orderBy: { name: "asc" },
+  });
 }
 
 async function roleDashboard(user: { userId: string; role: string }) {
@@ -254,7 +269,7 @@ async function analyticsFor(user: { userId: string; role: string }) {
   };
 }
 
-async function getData(action: string, user: { userId: string; role: string }) {
+async function getData(action: string, user: { userId: string; role: string }, childId?: string | null) {
   if (action === "dashboard") {
     const child = await childFor(user);
     if (!child) {
@@ -507,7 +522,7 @@ async function getData(action: string, user: { userId: string; role: string }) {
   if (action === "role") return roleDashboard(user);
 
   if (action === "role-detail" || action === "report") {
-    const child = await childFor(user);
+    const child = await childFor(user, action === "report" ? childId : null);
     if (!child) return {};
     const [profile, progress, weekly, observations, notes, recommendations, activities] =
       await Promise.all([
@@ -554,6 +569,7 @@ async function getData(action: string, user: { userId: string; role: string }) {
       return {
         html,
         child: toSnake(child),
+        children: toSnake(await childrenFor(user)),
         generated_by: base.generatedBy,
         generated_at: generatedAt,
         role: user.role,
@@ -588,7 +604,8 @@ export const Route = createFileRoute("/api/data/$action")({
         try {
           const user = await currentUser(request);
           if (!user) return json({ error: "Unauthorized" }, 401);
-          return json(await getData(params.action, user));
+          const childId = new URL(request.url).searchParams.get("child_id");
+          return json(await getData(params.action, user, childId));
         } catch (error) {
           console.error("[api/data GET]", params.action, error);
           return json({ error: "Server error" }, 500);
