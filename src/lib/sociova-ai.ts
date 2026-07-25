@@ -45,8 +45,9 @@ export function analyzeEmotion(inputText: string): EmotionResult {
     return { ...rule, hits };
   });
   const ranked = raw.sort((a, b) => b.hits - a.hits);
-  const best = ranked[0]?.hits ? ranked[0] : RULES[0];
-  const maxHits = Math.max(1, ranked[0]?.hits ?? 1);
+  const best = ranked[0]?.hits
+    ? ranked[0]
+    : { ...RULES[0], hits: 0 };
   const scores = RULES.map((rule) => {
     const hits = rule.keywords.filter((word) => text.includes(word)).length;
     const base = rule.label === best.label ? 58 : 12;

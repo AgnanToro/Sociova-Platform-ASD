@@ -1,11 +1,6 @@
 /**
  * Prisma Client singleton for Sociova.
- *
- * Usage (server-side only):
- *   import { prisma } from "@/lib/prisma";
- *
- * This connects to the local MySQL database (sociova) configured via DATABASE_URL.
- * Auth is still handled by Supabase — user_id fields store the Supabase UUID.
+ * MySQL via DATABASE_URL. Auth: JWT + bcrypt (adult accounts).
  */
 import { PrismaClient } from "@prisma/client";
 

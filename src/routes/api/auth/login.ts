@@ -1,28 +1,15 @@
 import { createFileRoute } from "@tanstack/react-router";
 import type {} from "@tanstack/react-start";
-import bcrypt from "bcryptjs";
-import { SignJWT } from "jose";
 import { z } from "zod";
-import { PrismaClient } from "@prisma/client";
+import { prisma } from "@/lib/prisma";
+import { verifyPassword } from "@/lib/password";
+import { signToken } from "@/lib/jwt";
+import { isAuthRole, type AuthRole } from "@/lib/roles";
 
 const LoginSchema = z.object({
-  email:    z.string().email(),
+  email: z.string().email(),
   password: z.string().min(1),
 });
-
-function getSecret() {
-  const s = process.env.JWT_SECRET;
-  if (!s) throw new Error("JWT_SECRET not set in .env");
-  return new TextEncoder().encode(s);
-}
-
-async function signToken(payload: { userId: string; email: string; role: string }) {
-  return new SignJWT(payload as Record<string, unknown>)
-    .setProtectedHeader({ alg: "HS256" })
-    .setIssuedAt()
-    .setExpirationTime("30d")
-    .sign(getSecret());
-}
 
 function json(data: unknown, status = 200) {
   return new Response(JSON.stringify(data), {
@@ -35,7 +22,6 @@ export const Route = createFileRoute("/api/auth/login")({
   server: {
     handlers: {
       POST: async ({ request }) => {
-        // Parse body
         let body: unknown;
         try {
           body = await request.json();
@@ -43,14 +29,15 @@ export const Route = createFileRoute("/api/auth/login")({
           return json({ ok: false, error: "Invalid JSON" }, 400);
         }
 
-        // Validate
         const parsed = LoginSchema.safeParse(body);
         if (!parsed.success) {
-          return json({ ok: false, error: parsed.error.errors[0]?.message ?? "Input tidak valid" }, 400);
+          return json(
+            { ok: false, error: parsed.error.errors[0]?.message ?? "Input tidak valid" },
+            400,
+          );
         }
 
         const { email, password } = parsed.data;
-        const prisma = new PrismaClient();
 
         try {
           const profile = await prisma.userProfile.findFirst({
@@ -62,22 +49,35 @@ export const Route = createFileRoute("/api/auth/login")({
             return json({ ok: false, error: "Email atau password salah." }, 401);
           }
 
-          const match = await bcrypt.compare(password, profile.passwordHash);
+          const match = await verifyPassword(password, profile.passwordHash);
           if (!match) {
             return json({ ok: false, error: "Email atau password salah." }, 401);
           }
 
-          const role     = (profile.roles[0]?.role as string) ?? "parent";
+          const rawRole = profile.roles.find((r) => isAuthRole(r.role))?.role;
+          if (!rawRole || !isAuthRole(rawRole)) {
+            return json(
+              {
+                ok: false,
+                error:
+                  "Akun ini tidak memiliki role login yang valid. Anak dikelola lewat akun orang tua.",
+              },
+              403,
+            );
+          }
+
+          const role = rawRole as AuthRole;
           const fullName = profile.fullName ?? "";
-          const token    = await signToken({ userId: profile.userId, email: profile.email!, role });
+          const token = await signToken({
+            userId: profile.userId,
+            email: profile.email!,
+            role,
+          });
 
           return json({ ok: true, token, userId: profile.userId, role, fullName });
-
         } catch (err) {
           console.error("[login] error:", err);
           return json({ ok: false, error: "Server error. Coba lagi." }, 500);
-        } finally {
-          await prisma.$disconnect();
         }
       },
     },

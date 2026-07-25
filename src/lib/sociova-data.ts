@@ -1,16 +1,6 @@
 import { useCallback, useEffect, useState, type DependencyList } from "react";
 import { getToken } from "@/lib/auth";
-import type { AppRole } from "@/lib/roles";
-import {
-  demoAchievements,
-  demoCommunityPosts,
-  demoEmotionLogs,
-  demoJourneyLevels,
-  demoProgress,
-  demoResources,
-  demoScenarios,
-  demoStories,
-} from "@/lib/demo-data";
+import type { AuthRole } from "@/lib/roles";
 
 export type QueryState<T> = {
   data: T | null;
@@ -88,33 +78,108 @@ async function api<T>(action: string, init?: RequestInit): Promise<T> {
 }
 
 export const loadDashboardData = () => api<any>("dashboard");
-export const loadJourneyData = () =>
-  api<any>("journey").catch(() => ({ demoMode: true, levels: demoJourneyLevels }));
-export const loadSimulationData = () => api<any[]>("simulation").catch(() => demoScenarios);
-export const loadStoryData = () =>
-  api<any>("story").catch(() => ({ demoMode: true, stories: demoStories }));
-export const loadEmotionData = () =>
-  api<any>("emotion").catch(() => ({ demoMode: true, logs: demoEmotionLogs }));
-export const loadAchievementsData = () =>
-  api<any>("achievements").catch(() => ({
-    demoMode: true,
-    progress: demoProgress,
-    achievements: demoAchievements,
-  }));
-export const loadCommunityData = () =>
-  api<any>("community").catch(() => ({ demoMode: true, posts: demoCommunityPosts }));
-export const loadResourcesData = () => api<any[]>("resources").catch(() => demoResources);
+export const loadJourneyData = () => api<any>("journey");
+export const loadSimulationData = () => api<any[]>("simulation");
+export const loadStoryData = () => api<any>("story");
+export const loadEmotionData = () => api<any>("emotion");
+export const loadAchievementsData = () => api<any>("achievements");
+export const loadCommunityData = () => api<any>("community");
+export const loadResourcesData = () => api<any[]>("resources");
 export const loadRoleDashboardData = (_role: "parent" | "teacher" | "therapist") =>
   api<any>("role");
-export const loadRoleDetailData = () => api<any>("role-detail");
+export const loadRoleDetailData = (childId?: string) =>
+  api<any>(`role-detail${childId ? `?child_id=${encodeURIComponent(childId)}` : ""}`);
 export const loadAnalyticsData = () => api<any>("analytics");
 export const loadSettingsData = () => api<any>("settings");
 export const loadWeeklyReport = (childId?: string) =>
   api<any>(`report${childId ? `?child_id=${encodeURIComponent(childId)}` : ""}`);
 export const loadNotificationsData = () => api<any>("notifications");
+export const loadChildrenData = () => api<{ children: any[] }>("children");
+export const loadAdminStats = () => api<any>("admin-stats");
+export const loadAdminUsers = () => api<{ users: any[] }>("admin-users");
+export const adminSetRole = (payload: { user_id: string; role: string }) =>
+  api<{ saved: boolean }>("admin-set-role", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+export const adminUpdateUser = (payload: {
+  user_id: string;
+  full_name: string;
+  email: string;
+  role: string;
+  new_password?: string;
+}) =>
+  api<{ saved: boolean }>("admin-update-user", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+export const adminCreateUser = (payload: {
+  full_name: string;
+  email: string;
+  password: string;
+  role: string;
+}) =>
+  api<{ saved: boolean; user_id?: string }>("admin-create-user", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+export const adminDeletePost = (postId: string) =>
+  api<{ saved: boolean }>("admin-delete-post", {
+    method: "POST",
+    body: JSON.stringify({ post_id: postId }),
+  });
+export const adminDeleteReply = (replyId: string) =>
+  api<{ saved: boolean }>("admin-delete-reply", {
+    method: "POST",
+    body: JSON.stringify({ reply_id: replyId }),
+  });
+export const adminDeleteUser = (userId: string) =>
+  api<{ saved: boolean }>("admin-delete-user", {
+    method: "POST",
+    body: JSON.stringify({ user_id: userId }),
+  });
+export const createChildProfile = (payload: {
+  name: string;
+  email: string;
+  password: string;
+  age?: number;
+  diagnosis_level?: string;
+  learning_goal?: string;
+}) =>
+  api<{ saved: boolean; child: any; login?: { email: string; role: string } }>("create-child", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+export const deleteChildProfile = (childId: string) =>
+  api<{ saved: boolean; deleted?: boolean }>("delete-child", {
+    method: "POST",
+    body: JSON.stringify({ child_id: childId }),
+  });
+export const linkCareTeam = (payload: {
+  child_id: string;
+  email: string;
+  role: "teacher" | "therapist";
+}) =>
+  api<{ saved: boolean }>("link-care-team", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
 
 export const saveSettingsData = (payload: any) =>
   api<{ saved: boolean }>("settings", { method: "POST", body: JSON.stringify(payload) });
+export const changePassword = (payload: {
+  current_password: string;
+  new_password: string;
+}) =>
+  api<{ saved: boolean }>("change-password", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+export const verifyCurrentPassword = (current_password: string) =>
+  api<{ ok: boolean }>("verify-password", {
+    method: "POST",
+    body: JSON.stringify({ current_password }),
+  });
 export const saveSimulationSession = (params: any) =>
   api<any>("simulation", { method: "POST", body: JSON.stringify(params) });
 export const simulateTurn = (params: any) =>
@@ -149,17 +214,20 @@ export const createObservation = (payload: {
   title: string;
   observation: string;
   support_plan?: string;
+  child_id?: string;
 }) => api<{ saved: boolean }>("observation", { method: "POST", body: JSON.stringify(payload) });
 export const createSessionNote = (payload: {
   title: string;
   note: string;
   next_focus?: string;
+  child_id?: string;
 }) => api<{ saved: boolean }>("session-note", { method: "POST", body: JSON.stringify(payload) });
 export const createRecommendation = (payload: {
   title: string;
   description: string;
   audience?: string;
   category?: string;
+  child_id?: string;
 }) =>
   api<{ saved: boolean }>("recommendation", { method: "POST", body: JSON.stringify(payload) });
 
@@ -169,6 +237,33 @@ export function formatShortDate(value: string) {
   );
 }
 
-export type { AppRole };
+export type { AuthRole };
 
-export const createResource = (payload: { title: string; description: string; category?: string; url?: string; language?: string }) => api<{ saved: boolean }>("resource", { method: "POST", body: JSON.stringify(payload) });
+export const createResource = (payload: {
+  title: string;
+  description: string;
+  category?: string;
+  url?: string;
+  language?: string;
+  media_data_url?: string;
+  lesson?: string;
+}) => api<{ saved: boolean }>("resource", { method: "POST", body: JSON.stringify(payload) });
+
+export const updateResource = (payload: {
+  id: string;
+  title: string;
+  description: string;
+  category?: string;
+  media_data_url?: string;
+  lesson?: string;
+}) =>
+  api<{ saved: boolean }>("update-resource", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+
+export const deleteResource = (id: string) =>
+  api<{ saved: boolean }>("delete-resource", {
+    method: "POST",
+    body: JSON.stringify({ id }),
+  });

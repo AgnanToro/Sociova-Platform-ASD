@@ -7,36 +7,21 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
 import { AuthShell } from "@/components/site/auth-shell";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { saveSession, roleHome } from "@/lib/auth";
-import type { AppRole } from "@/lib/roles";
+import type { AuthRole } from "@/lib/roles";
+import { getPasswordChecks, isPasswordStrong } from "@/lib/password-policy";
 
 export const Route = createFileRoute("/register")({
   head: () => ({
     meta: [
       { title: "Daftar · Sociova" },
-      { name: "description", content: "Buat akun Sociova dan mulai perjalanan belajar." },
+      { name: "description", content: "Buat akun orang tua Sociova dan mulai mendampingi anak." },
     ],
   }),
   component: RegisterPage,
 });
 
-function getPasswordChecks(pw: string) {
-  return {
-    length:  pw.length >= 8,
-    upper:   /[A-Z]/.test(pw),
-    number:  /[0-9]/.test(pw),
-    special: /[^A-Za-z0-9]/.test(pw),
-  };
-}
-
-function isPasswordStrong(pw: string) {
-  const c = getPasswordChecks(pw);
-  return c.length && c.upper && c.number;
-}
-
 function RegisterPage() {
-  const [role, setRole]           = useState<AppRole>("parent");
   const [fullName, setFullName]   = useState("");
   const [email, setEmail]         = useState("");
   const [password, setPassword]   = useState("");
@@ -65,9 +50,9 @@ function RegisterPage() {
       const res = await fetch("/api/auth/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password, fullName, role }),
+        body: JSON.stringify({ email, password, fullName }),
       });
-      const result = await res.json() as { ok: boolean; error?: string; token?: string; userId?: string; role?: AppRole; fullName?: string };
+      const result = await res.json() as { ok: boolean; error?: string; token?: string; userId?: string; role?: AuthRole; fullName?: string };
       if (!result.ok) {
         toast.error(result.error ?? "Terjadi kesalahan");
         return;
@@ -78,7 +63,7 @@ function RegisterPage() {
         role:     result.role!,
         fullName: result.fullName!,
       });
-      toast.success("Akun berhasil dibuat! Selamat datang di Sociova 🎉");
+      toast.success("Akun berhasil dibuat. Selamat datang di Sociova.");
       navigate({ to: roleHome(result.role!), replace: true });
     } catch (err) {
       toast.error("Tidak bisa terhubung ke server. Coba lagi.");
@@ -92,38 +77,12 @@ function RegisterPage() {
     <AuthShell>
       <div className="mb-6 text-center">
         <h1 className="font-display text-3xl font-bold">Daftar · Sociova</h1>
-        <p className="mt-1 text-sm text-muted-foreground">Buat akun Sociova dan mulai perjalanan belajar bersama Sova.</p>
+        <p className="mt-1 text-sm text-muted-foreground">
+          Buat akun orang tua dan mulai mendampingi anak bersama Sova.
+        </p>
       </div>
       <Card className="glass rounded-2xl p-6 shadow-xl">
         <form className="space-y-4" onSubmit={handleSubmit}>
-
-          {/* Role */}
-          <div className="space-y-1.5">
-            <Label>Saya adalah…</Label>
-            <RadioGroup
-              value={role}
-              onValueChange={(v) => setRole(v as AppRole)}
-              className="grid grid-cols-2 gap-2"
-            >
-              {([
-                { v: "child",     l: "Anak" },
-                { v: "parent",    l: "Orang Tua" },
-                { v: "teacher",   l: "Guru" },
-                { v: "therapist", l: "Terapis" },
-              ] as { v: AppRole; l: string }[]).map((r) => (
-                <label
-                  key={r.v}
-                  className={`flex cursor-pointer items-center gap-2 rounded-xl border p-3 text-sm transition-all ${
-                    role === r.v
-                      ? "border-[color:var(--brand)] bg-[color:var(--brand)]/5"
-                      : "border-border hover:bg-accent"
-                  }`}
-                >
-                  <RadioGroupItem value={r.v} /> {r.l}
-                </label>
-              ))}
-            </RadioGroup>
-          </div>
 
           {/* Full name */}
           <div className="space-y-1.5">

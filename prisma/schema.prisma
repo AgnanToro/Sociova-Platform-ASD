@@ -1,7 +1,8 @@
 // =============================================================
 // Sociova — Prisma Schema
 // Database: MySQL (Laragon local)
-// Auth: Supabase Auth (cloud)
+// Auth: JWT + bcrypt (adult accounts only)
+// Child: profile managed by parent (no login account)
 // =============================================================
 
 generator client {
@@ -13,27 +14,49 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// NOTE: MySQL Prisma enums compile to ENUM columns natively.
+/// Login roles (child via parent; admin via seed only).
 enum AppRole {
+  child
+  parent
+  teacher
+  therapist
+  admin
+}
+
+/// Audience for recommendations / community history tags.
+enum AudienceRole {
   child
   parent
   teacher
   therapist
 }
 
-// Mirrors auth.users from Supabase — userId is the Supabase user UUID.
+enum CareTeamStatus {
+  pending
+  active
+  revoked
+}
+
+enum JourneyStatus {
+  completed
+  in_progress
+  locked
+}
+
+/// Adult user account (parent / teacher / therapist).
 model UserProfile {
   id           String   @id @default(uuid())
   userId       String   @unique @map("user_id") @db.VarChar(36)
   fullName     String?  @map("full_name") @db.VarChar(255)
-  email        String?  @db.VarChar(255)
+  email        String?  @unique @db.VarChar(255)
   passwordHash String?  @map("password_hash") @db.VarChar(255)
   avatarUrl    String?  @map("avatar_url") @db.Text
   languageMode String   @default("hybrid") @map("language_mode") @db.VarChar(50)
   createdAt    DateTime @default(now()) @map("created_at")
   updatedAt    DateTime @updatedAt @map("updated_at")
 
-  roles UserRole[] @relation("ProfileRoles")
+  roles      UserRole[]       @relation("ProfileRoles")
+  careTeams  CareTeamMember[] @relation("CareTeamUser")
 
   @@map("profiles")
 }
@@ -50,6 +73,7 @@ model UserRole {
   @@map("user_roles")
 }
 
+/// Child profile linked to a login account (userId) created by parent.
 model ChildProfile {
   id             String  @id @default(uuid())
   parentId       String  @map("parent_id") @db.VarChar(36)
@@ -64,19 +88,42 @@ model ChildProfile {
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
-  progress            LearningProgress[]
-  simulationSessions  SimulationSession[]
-  socialStories       SocialStory[]
-  emotionAnalyses     EmotionAnalysis[]
-  achievements        Achievement[]
-  journeyProgress     UserJourneyProgress[]
-  activityHistory     ActivityHistory[]
-  weeklyProgress      WeeklyProgress[]
+  progress           LearningProgress[]
+  simulationSessions SimulationSession[]
+  socialStories      SocialStory[]
+  emotionAnalyses    EmotionAnalysis[]
+  achievements       Achievement[]
+  journeyProgress    UserJourneyProgress[]
+  activityHistory    ActivityHistory[]
+  weeklyProgress     WeeklyProgress[]
   teacherObservations TeacherObservation[]
-  therapistNotes      TherapistNote[]
-  recommendations     Recommendation[]
+  therapistNotes     TherapistNote[]
+  recommendations    Recommendation[]
+  careTeam           CareTeamMember[]
 
+  @@index([parentId])
+  @@index([teacherId])
+  @@index([therapistId])
   @@map("children")
+}
+
+/// Multi-member care team (invite/link parent–teacher–therapist to a child).
+model CareTeamMember {
+  id        String         @id @default(uuid())
+  childId   String         @map("child_id") @db.VarChar(36)
+  userId    String         @map("user_id") @db.VarChar(36)
+  role      AppRole // parent | teacher | therapist only in practice
+  status    CareTeamStatus @default(active)
+  invitedBy String?        @map("invited_by") @db.VarChar(36)
+  createdAt DateTime       @default(now()) @map("created_at")
+  updatedAt DateTime       @updatedAt @map("updated_at")
+
+  child ChildProfile @relation(fields: [childId], references: [id], onDelete: Cascade)
+  user  UserProfile  @relation("CareTeamUser", fields: [userId], references: [userId])
+
+  @@unique([childId, userId, role])
+  @@index([userId])
+  @@map("care_team_members")
 }
 
 model LearningProgress {
@@ -163,12 +210,12 @@ model Achievement {
 }
 
 model CommunityPost {
-  id       String   @id @default(uuid())
-  authorId String   @map("author_id") @db.VarChar(36)
-  role     AppRole?
-  content  String   @db.Text
-  likes    Int      @default(0)
-  comments Int      @default(0)
+  id       String        @id @default(uuid())
+  authorId String        @map("author_id") @db.VarChar(36)
+  role     AudienceRole?
+  content  String        @db.Text
+  likes    Int           @default(0)
+  comments Int           @default(0)
 
   createdAt DateTime         @default(now()) @map("created_at")
   replies   CommunityReply[]
@@ -178,12 +225,12 @@ model CommunityPost {
 }
 
 model CommunityReply {
-  id        String   @id @default(uuid())
-  postId    String   @map("post_id") @db.VarChar(36)
-  authorId  String   @map("author_id") @db.VarChar(36)
-  role      AppRole?
-  content   String   @db.Text
-  createdAt DateTime @default(now()) @map("created_at")
+  id        String        @id @default(uuid())
+  postId    String        @map("post_id") @db.VarChar(36)
+  authorId  String        @map("author_id") @db.VarChar(36)
+  role      AudienceRole?
+  content   String        @db.Text
+  createdAt DateTime      @default(now()) @map("created_at")
 
   post CommunityPost @relation(fields: [postId], references: [id], onDelete: Cascade)
 
@@ -237,12 +284,6 @@ model JourneyLevel {
   journeyProgress UserJourneyProgress[]
 
   @@map("journey_levels")
-}
-
-enum JourneyStatus {
-  completed
-  in_progress
-  locked
 }
 
 model UserJourneyProgress {
@@ -371,14 +412,14 @@ model TherapistNote {
 }
 
 model Recommendation {
-  id          String   @id @default(uuid())
-  childId     String   @map("child_id") @db.VarChar(36)
-  authorId    String?  @map("author_id") @db.VarChar(36)
-  audience    AppRole  @default(parent)
-  title       String   @db.VarChar(255)
-  description String   @db.Text
-  category    String   @db.VarChar(100)
-  createdAt   DateTime @default(now()) @map("created_at")
+  id          String       @id @default(uuid())
+  childId     String       @map("child_id") @db.VarChar(36)
+  authorId    String?      @map("author_id") @db.VarChar(36)
+  audience    AudienceRole @default(parent)
+  title       String       @db.VarChar(255)
+  description String       @db.Text
+  category    String       @db.VarChar(100)
+  createdAt   DateTime     @default(now()) @map("created_at")
 
   child ChildProfile @relation(fields: [childId], references: [id], onDelete: Cascade)
 

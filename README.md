@@ -86,7 +86,7 @@ http://localhost:5173
 
 ## Demo Accounts
 
-Password semua akun:
+Password semua akun (disimpan sebagai **bcrypt hash** di DB):
 
 ```text
 Sociova123!
@@ -98,6 +98,9 @@ Sociova123!
 | Parent | budi@sociova.local |
 | Teacher | siti@sociova.local |
 | Therapist | dr.andini@sociova.local |
+| Admin |  admin@sociova.local |
+
+**Catatan:** Akun anak dibuat oleh parent di menu **Kelola Anak** (email + password). Anak login sendiri dan melihat menu belajar. Parent hanya monitor (progress, report, analytics).
 
 ---
 

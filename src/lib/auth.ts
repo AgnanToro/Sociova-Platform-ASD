@@ -1,35 +1,28 @@
 /**
  * Sociova — Client-side Auth Helpers
- *
- * Token + user disimpan di localStorage.
- * Server functions (registerFn, loginFn) dipanggil langsung dari route files
- * karena TanStack Start melarang import server files dari client code.
+ * Token + user di localStorage. Roles: child | parent | teacher | therapist.
+ * Child accounts are created by parent (not self-register).
  */
 import { useEffect, useState, useCallback } from "react";
-import type { AppRole } from "@/lib/roles";
-import { ROLE_HOME } from "@/lib/roles";
+import type { AuthRole } from "@/lib/roles";
+import { isAuthRole, ROLE_HOME } from "@/lib/roles";
 
 const TOKEN_KEY = "sociova-token";
-const USER_KEY  = "sociova-user";
-
-// ── types ─────────────────────────────────────────────────────────────────────
+const USER_KEY = "sociova-user";
 
 export type LocalUser = {
-  userId:   string;
-  email:    string;
-  role:     AppRole;
+  userId: string;
+  email: string;
+  role: AuthRole;
   fullName: string;
 };
 
 export type AuthState = {
-  user:    LocalUser | null;
-  role:    AppRole | null;
+  user: LocalUser | null;
+  role: AuthRole | null;
   loading: boolean;
-  /** Compat shim — beberapa komponen dashboard baca session.user */
   session: { user: LocalUser } | null;
 };
-
-// ── storage helpers ───────────────────────────────────────────────────────────
 
 export function saveSession(token: string, user: LocalUser): void {
   localStorage.setItem(TOKEN_KEY, token);
@@ -44,7 +37,13 @@ export function clearSession(): void {
 export function getStoredUser(): LocalUser | null {
   try {
     const raw = localStorage.getItem(USER_KEY);
-    return raw ? (JSON.parse(raw) as LocalUser) : null;
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as LocalUser;
+    if (!isAuthRole(parsed.role)) {
+      clearSession();
+      return null;
+    }
+    return parsed;
   } catch {
     return null;
   }
@@ -54,37 +53,42 @@ export function getToken(): string | null {
   return localStorage.getItem(TOKEN_KEY);
 }
 
-// ── React hook ────────────────────────────────────────────────────────────────
-
 export function useAuth(): AuthState & {
   signOut: () => void;
   refreshRole: () => void;
 } {
   const [state, setState] = useState<AuthState>({
-    user: null, role: null, loading: true, session: null,
+    user: null,
+    role: null,
+    loading: true,
+    session: null,
   });
 
   useEffect(() => {
     const user = getStoredUser();
-    setState({ user, role: user?.role ?? null, loading: false, session: user ? { user } : null });
+    setState({
+      user,
+      role: user?.role ?? null,
+      loading: false,
+      session: user ? { user } : null,
+    });
   }, []);
 
   const signOut = useCallback(() => {
+    // Clear storage then hard-navigate immediately so React never re-renders
+    // the dashboard with role=null (which briefly shows the default sidebar).
     clearSession();
-    setState({ user: null, role: null, loading: false, session: null });
-    window.location.href = "/login";
+    window.location.replace("/login");
   }, []);
 
   const refreshRole = useCallback(() => {
     const user = getStoredUser();
-    setState((s) => ({ ...s, role: user?.role ?? null }));
+    setState((s) => ({ ...s, role: user?.role ?? null, user, session: user ? { user } : null }));
   }, []);
 
   return { ...state, signOut, refreshRole };
 }
 
-// ── role helper ───────────────────────────────────────────────────────────────
-
-export function roleHome(role: AppRole | null | undefined): string {
-  return role ? ROLE_HOME[role] : "/dashboard";
+export function roleHome(role: AuthRole | null | undefined): string {
+  return role ? ROLE_HOME[role] : "/login";
 }

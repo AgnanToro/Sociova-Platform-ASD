@@ -63,7 +63,7 @@ function Hero() {
           <div className="max-w-3xl animate-fade-in text-center lg:text-left">
             <div className="inline-flex items-center gap-2 rounded-full border border-border/70 bg-secondary/60 px-3 py-1 text-xs text-muted-foreground backdrop-blur">
               <span className="h-1.5 w-1.5 rounded-full bg-[color:var(--brand)] animate-pulse" />
-              🤖 AI Social Skills Training
+              AI Social Skills Training
             </div>
             <h1 className="mt-6 font-display text-4xl font-bold tracking-tight sm:text-5xl md:text-6xl lg:text-7xl">
               Learn Social Skills with <span className="text-gradient-brand">Adaptive AI</span>
@@ -131,7 +131,7 @@ function HeroSovaChat() {
         </div>
         <div className="space-y-2 p-4">
           <Bubble side="left">
-            Halo! Aku Sova 😊 Hari ini kita belajar berkenalan dengan teman baru. Siapa namamu?
+            Halo! Aku Sova. Hari ini kita belajar berkenalan dengan teman baru. Siapa namamu?
           </Bubble>
           <Bubble side="right" brand>
             Namaku Bimo.

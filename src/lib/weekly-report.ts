@@ -1,8 +1,8 @@
-﻿import type { AppRole } from "@/lib/roles";
+﻿import type { AuthRole } from "@/lib/roles";
 
 export type WeeklyReportData = {
   childName: string;
-  role: AppRole | string;
+  role: AuthRole | string;
   generatedBy: string;
   generatedAt: string;
   progress: any;
@@ -89,7 +89,7 @@ export function buildWeeklyReportHtml(params: WeeklyReportData) {
 </head>
 <body>
   <h1>Laporan Mingguan Sociova</h1>
-  <p class="muted">Anak: <strong>${data.childName}</strong> · Dibuat oleh: ${data.generatedBy} (${data.role}) · ${new Date(data.generatedAt).toLocaleString("id-ID")}</p>
+  <p class="muted">Anak: <strong>${data.childName}</strong> · Dibuka oleh: ${data.generatedBy} (${data.role}) · ${new Date(data.generatedAt).toLocaleString("id-ID")}</p>
   <div class="card">
     <h2>Ringkasan Capaian</h2>
     <p>Level ${data.progress.level} · XP ${data.progress.xp} · Streak ${data.progress.streak} hari</p>

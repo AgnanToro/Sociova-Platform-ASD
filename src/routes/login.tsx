@@ -45,11 +45,11 @@ function LoginPage() {
       saveSession(result.token!, {
         userId:   result.userId!,
         email,
-        role:     result.role as import("@/lib/roles").AppRole,
+        role:     result.role as import("@/lib/roles").AuthRole,
         fullName: result.fullName!,
       });
       toast.success("Selamat datang kembali!");
-      navigate({ to: roleHome(result.role as import("@/lib/roles").AppRole), replace: true });
+      navigate({ to: roleHome(result.role as import("@/lib/roles").AuthRole), replace: true });
     } catch (err) {
       toast.error("Tidak bisa terhubung ke server. Coba lagi.");
       console.error(err);

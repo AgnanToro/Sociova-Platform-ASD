@@ -2,136 +2,55 @@
 
 ## Overview
 
-Sociova uses **Supabase PostgreSQL** as its primary database while **Prisma ORM** manages database access for the backend.
-
-Current architecture:
-
 ```
-React
+React (TanStack Start)
    │
    ▼
-Backend API
+API routes (/api/auth/*, /api/data/*)
    │
    ▼
 Prisma ORM
    │
    ▼
-Supabase PostgreSQL
+MySQL (Laragon local)
 ```
 
-Supabase is also used for:
+Auth: **JWT (jose) + bcrypt** — adult accounts only (`parent` | `teacher` | `therapist`).
 
-* Authentication
-* Storage
-* Row Level Security (RLS)
+Child: **profile** owned by parent (`children` table), not a login account. Care team links via `care_team_members` + optional `teacher_id` / `therapist_id` on child.
 
----
-
-## Database
-
-Database provider:
-
-* Supabase PostgreSQL
-
-ORM:
-
-* Prisma
-
-Prisma schema:
+## Environment
 
 ```
-prisma/schema.prisma
+DATABASE_URL=mysql://root@127.0.0.1:3306/sociova
+JWT_SECRET=long-random-secret
 ```
 
-Database migrations:
-
-```
-prisma/migrations/
-```
-
-After the migration is complete, Prisma becomes the primary database access layer.
-
----
-
-## Authentication
-
-Authentication uses **Supabase Auth**.
-
-Supported providers:
-
-* Email & Password
-* Google OAuth
-
-The backend validates Supabase JWT tokens before accessing protected resources.
-
----
-
-## Tables
-
-* profiles
-* user_roles
-* children
-* learning_progress
-* simulation_sessions
-* social_stories
-* emotion_analyses
-* achievements
-* community_posts
-* user_settings
-
----
-
-## Environment Variables
-
-```
-DATABASE_URL
-DIRECT_URL
-
-SUPABASE_URL
-SUPABASE_ANON_KEY
-SUPABASE_SERVICE_ROLE_KEY
-```
-
-Never expose the Service Role Key to the client.
-
----
-
-## Folder Structure
+## Key folders
 
 ```
 prisma/
- ├── schema.prisma
- └── migrations/
+  schema.prisma
+  seed.mjs
+  migrations/
 
 src/
- ├── lib/
- │   ├── auth.ts
- │   ├── roles.ts
- │   └── database.ts
- │
- └── api/
+  lib/          # auth, jwt, password, roles, prisma, data client
+  features/
+    parent/     # parent UI modules
+    teacher/
+    therapist/
+  routes/
+    api/auth/
+    api/data/
+    dashboard*.tsx
 ```
 
----
+## Seed
 
-## Tech Stack
+```bash
+# after migration + prisma generate
+npm run db:seed
+```
 
-* Prisma ORM
-* Supabase PostgreSQL
-* Supabase Auth
-* TypeScript
-* React
-* TanStack Router
-* TanStack Query
-
----
-
-## Deployment
-
-Backend can be deployed to:
-
-* Vercel
-* Railway
-* Render
-
-Database remains hosted on Supabase.
+Passwords are **bcrypt-hashed** (`Sociova123!`). Demo logins: parent/teacher/therapist only.

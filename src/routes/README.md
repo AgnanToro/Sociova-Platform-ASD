@@ -1,21 +1,17 @@
-# Routes
+# Routes structure
 
-TanStack Start uses **file-based routing**. Every `.tsx` file in this directory
-defines a route. Do **not** create `src/pages/`, `src/routes/_app/index.tsx`, or
-`app/layout.tsx` — those are Next.js / Remix conventions. The only root layout
-is `src/routes/__root.tsx`.
+```
+src/routes/
+  index.tsx, login.tsx, register.tsx
+  api/auth/, api/data/
+  dashboard/
+    route.tsx          # layout + AuthGate
+    index.tsx          # home by role
+    child/             # learning pages (child only)
+    parent/            # parent monitor + kelola anak
+    teacher/           # teacher tools
+    therapist/         # therapist tools
+    shared/            # community + settings (all roles)
+```
 
-## Conventions
-
-| File                     | URL                                                     |
-| ------------------------ | ------------------------------------------------------- |
-| `index.tsx`              | `/`                                                     |
-| `about.tsx`              | `/about`                                                |
-| `users/index.tsx`        | `/users`                                                |
-| `users/$id.tsx`          | `/users/:id` (dynamic — bare `$`, no curly braces)      |
-| `posts/{-$category}.tsx` | `/posts/:category?` (optional segment)                  |
-| `files/$.tsx`            | `/files/*` (splat — read via `_splat` param, never `*`) |
-| `_layout.tsx`            | layout route (renders children via `<Outlet />`)        |
-| `__root.tsx`             | app shell — wraps every page; preserve `<Outlet />`     |
-
-`routeTree.gen.ts` is auto-generated. Don't edit it by hand.
+UI logic lives in `src/features/{role}/`. Route files are thin wrappers only.

@@ -76,7 +76,7 @@ export function DashboardTopbar() {
             </div>
             <div className="border-t border-border/60 p-2">
               <Button asChild variant="ghost" className="w-full justify-start rounded-xl text-sm">
-                <Link to="/dashboard/settings" onClick={() => setOpen(false)}>
+                <Link to="/dashboard/shared/settings" onClick={() => setOpen(false)}>
                   Atur preferensi notifikasi
                 </Link>
               </Button>

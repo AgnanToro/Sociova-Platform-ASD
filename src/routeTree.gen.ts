@@ -12,25 +12,36 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as RegisterRouteImport } from './routes/register'
 import { Route as LoginRouteImport } from './routes/login'
-import { Route as DashboardRouteImport } from './routes/dashboard'
+import { Route as DashboardRouteRouteImport } from './routes/dashboard/route'
 import { Route as IndexRouteImport } from './routes/index'
-import { Route as DashboardIndexRouteImport } from './routes/dashboard.index'
-import { Route as DashboardTherapistRouteImport } from './routes/dashboard.therapist'
-import { Route as DashboardTeacherRouteImport } from './routes/dashboard.teacher'
-import { Route as DashboardStoryRouteImport } from './routes/dashboard.story'
-import { Route as DashboardSimulationRouteImport } from './routes/dashboard.simulation'
-import { Route as DashboardSettingsRouteImport } from './routes/dashboard.settings'
-import { Route as DashboardSessionNotesRouteImport } from './routes/dashboard.session-notes'
-import { Route as DashboardResourcesRouteImport } from './routes/dashboard.resources'
-import { Route as DashboardReportRouteImport } from './routes/dashboard.report'
-import { Route as DashboardParentRouteImport } from './routes/dashboard.parent'
-import { Route as DashboardObservationsRouteImport } from './routes/dashboard.observations'
-import { Route as DashboardMissionRouteImport } from './routes/dashboard.mission'
-import { Route as DashboardJourneyRouteImport } from './routes/dashboard.journey'
-import { Route as DashboardEmotionRouteImport } from './routes/dashboard.emotion'
-import { Route as DashboardCommunityRouteImport } from './routes/dashboard.community'
-import { Route as DashboardAnalyticsRouteImport } from './routes/dashboard.analytics'
-import { Route as DashboardAchievementsRouteImport } from './routes/dashboard.achievements'
+import { Route as DashboardIndexRouteImport } from './routes/dashboard/index'
+import { Route as DashboardTherapistIndexRouteImport } from './routes/dashboard/therapist/index'
+import { Route as DashboardTeacherIndexRouteImport } from './routes/dashboard/teacher/index'
+import { Route as DashboardParentIndexRouteImport } from './routes/dashboard/parent/index'
+import { Route as DashboardTherapistSessionsRouteImport } from './routes/dashboard/therapist/sessions'
+import { Route as DashboardTherapistResourcesRouteImport } from './routes/dashboard/therapist/resources'
+import { Route as DashboardTherapistReportRouteImport } from './routes/dashboard/therapist/report'
+import { Route as DashboardTherapistEmotionRouteImport } from './routes/dashboard/therapist/emotion'
+import { Route as DashboardTherapistAnalyticsRouteImport } from './routes/dashboard/therapist/analytics'
+import { Route as DashboardTeacherResourcesRouteImport } from './routes/dashboard/teacher/resources'
+import { Route as DashboardTeacherReportRouteImport } from './routes/dashboard/teacher/report'
+import { Route as DashboardTeacherObservationsRouteImport } from './routes/dashboard/teacher/observations'
+import { Route as DashboardTeacherAnalyticsRouteImport } from './routes/dashboard/teacher/analytics'
+import { Route as DashboardSharedSettingsRouteImport } from './routes/dashboard/shared/settings'
+import { Route as DashboardSharedCommunityRouteImport } from './routes/dashboard/shared/community'
+import { Route as DashboardParentResourcesRouteImport } from './routes/dashboard/parent/resources'
+import { Route as DashboardParentReportRouteImport } from './routes/dashboard/parent/report'
+import { Route as DashboardParentChildrenRouteImport } from './routes/dashboard/parent/children'
+import { Route as DashboardParentAnalyticsRouteImport } from './routes/dashboard/parent/analytics'
+import { Route as DashboardChildStoryRouteImport } from './routes/dashboard/child/story'
+import { Route as DashboardChildSimulationRouteImport } from './routes/dashboard/child/simulation'
+import { Route as DashboardChildMissionRouteImport } from './routes/dashboard/child/mission'
+import { Route as DashboardChildJourneyRouteImport } from './routes/dashboard/child/journey'
+import { Route as DashboardChildEmotionRouteImport } from './routes/dashboard/child/emotion'
+import { Route as DashboardChildAchievementsRouteImport } from './routes/dashboard/child/achievements'
+import { Route as DashboardAdminUsersRouteImport } from './routes/dashboard/admin/users'
+import { Route as DashboardAdminResourcesRouteImport } from './routes/dashboard/admin/resources'
+import { Route as DashboardAdminCommunityRouteImport } from './routes/dashboard/admin/community'
 import { Route as ApiDataActionRouteImport } from './routes/api/data/$action'
 import { Route as ApiAuthRegisterRouteImport } from './routes/api/auth/register'
 import { Route as ApiAuthLoginRouteImport } from './routes/api/auth/login'
@@ -50,7 +61,7 @@ const LoginRoute = LoginRouteImport.update({
   path: '/login',
   getParentRoute: () => rootRouteImport,
 } as any)
-const DashboardRoute = DashboardRouteImport.update({
+const DashboardRouteRoute = DashboardRouteRouteImport.update({
   id: '/dashboard',
   path: '/dashboard',
   getParentRoute: () => rootRouteImport,
@@ -63,87 +74,155 @@ const IndexRoute = IndexRouteImport.update({
 const DashboardIndexRoute = DashboardIndexRouteImport.update({
   id: '/',
   path: '/',
-  getParentRoute: () => DashboardRoute,
+  getParentRoute: () => DashboardRouteRoute,
 } as any)
-const DashboardTherapistRoute = DashboardTherapistRouteImport.update({
-  id: '/therapist',
-  path: '/therapist',
-  getParentRoute: () => DashboardRoute,
+const DashboardTherapistIndexRoute = DashboardTherapistIndexRouteImport.update({
+  id: '/therapist/',
+  path: '/therapist/',
+  getParentRoute: () => DashboardRouteRoute,
 } as any)
-const DashboardTeacherRoute = DashboardTeacherRouteImport.update({
-  id: '/teacher',
-  path: '/teacher',
-  getParentRoute: () => DashboardRoute,
+const DashboardTeacherIndexRoute = DashboardTeacherIndexRouteImport.update({
+  id: '/teacher/',
+  path: '/teacher/',
+  getParentRoute: () => DashboardRouteRoute,
 } as any)
-const DashboardStoryRoute = DashboardStoryRouteImport.update({
-  id: '/story',
-  path: '/story',
-  getParentRoute: () => DashboardRoute,
+const DashboardParentIndexRoute = DashboardParentIndexRouteImport.update({
+  id: '/parent/',
+  path: '/parent/',
+  getParentRoute: () => DashboardRouteRoute,
 } as any)
-const DashboardSimulationRoute = DashboardSimulationRouteImport.update({
-  id: '/simulation',
-  path: '/simulation',
-  getParentRoute: () => DashboardRoute,
+const DashboardTherapistSessionsRoute =
+  DashboardTherapistSessionsRouteImport.update({
+    id: '/therapist/sessions',
+    path: '/therapist/sessions',
+    getParentRoute: () => DashboardRouteRoute,
+  } as any)
+const DashboardTherapistResourcesRoute =
+  DashboardTherapistResourcesRouteImport.update({
+    id: '/therapist/resources',
+    path: '/therapist/resources',
+    getParentRoute: () => DashboardRouteRoute,
+  } as any)
+const DashboardTherapistReportRoute =
+  DashboardTherapistReportRouteImport.update({
+    id: '/therapist/report',
+    path: '/therapist/report',
+    getParentRoute: () => DashboardRouteRoute,
+  } as any)
+const DashboardTherapistEmotionRoute =
+  DashboardTherapistEmotionRouteImport.update({
+    id: '/therapist/emotion',
+    path: '/therapist/emotion',
+    getParentRoute: () => DashboardRouteRoute,
+  } as any)
+const DashboardTherapistAnalyticsRoute =
+  DashboardTherapistAnalyticsRouteImport.update({
+    id: '/therapist/analytics',
+    path: '/therapist/analytics',
+    getParentRoute: () => DashboardRouteRoute,
+  } as any)
+const DashboardTeacherResourcesRoute =
+  DashboardTeacherResourcesRouteImport.update({
+    id: '/teacher/resources',
+    path: '/teacher/resources',
+    getParentRoute: () => DashboardRouteRoute,
+  } as any)
+const DashboardTeacherReportRoute = DashboardTeacherReportRouteImport.update({
+  id: '/teacher/report',
+  path: '/teacher/report',
+  getParentRoute: () => DashboardRouteRoute,
 } as any)
-const DashboardSettingsRoute = DashboardSettingsRouteImport.update({
-  id: '/settings',
-  path: '/settings',
-  getParentRoute: () => DashboardRoute,
+const DashboardTeacherObservationsRoute =
+  DashboardTeacherObservationsRouteImport.update({
+    id: '/teacher/observations',
+    path: '/teacher/observations',
+    getParentRoute: () => DashboardRouteRoute,
+  } as any)
+const DashboardTeacherAnalyticsRoute =
+  DashboardTeacherAnalyticsRouteImport.update({
+    id: '/teacher/analytics',
+    path: '/teacher/analytics',
+    getParentRoute: () => DashboardRouteRoute,
+  } as any)
+const DashboardSharedSettingsRoute = DashboardSharedSettingsRouteImport.update({
+  id: '/shared/settings',
+  path: '/shared/settings',
+  getParentRoute: () => DashboardRouteRoute,
 } as any)
-const DashboardSessionNotesRoute = DashboardSessionNotesRouteImport.update({
-  id: '/session-notes',
-  path: '/session-notes',
-  getParentRoute: () => DashboardRoute,
+const DashboardSharedCommunityRoute =
+  DashboardSharedCommunityRouteImport.update({
+    id: '/shared/community',
+    path: '/shared/community',
+    getParentRoute: () => DashboardRouteRoute,
+  } as any)
+const DashboardParentResourcesRoute =
+  DashboardParentResourcesRouteImport.update({
+    id: '/parent/resources',
+    path: '/parent/resources',
+    getParentRoute: () => DashboardRouteRoute,
+  } as any)
+const DashboardParentReportRoute = DashboardParentReportRouteImport.update({
+  id: '/parent/report',
+  path: '/parent/report',
+  getParentRoute: () => DashboardRouteRoute,
 } as any)
-const DashboardResourcesRoute = DashboardResourcesRouteImport.update({
-  id: '/resources',
-  path: '/resources',
-  getParentRoute: () => DashboardRoute,
+const DashboardParentChildrenRoute = DashboardParentChildrenRouteImport.update({
+  id: '/parent/children',
+  path: '/parent/children',
+  getParentRoute: () => DashboardRouteRoute,
 } as any)
-const DashboardReportRoute = DashboardReportRouteImport.update({
-  id: '/report',
-  path: '/report',
-  getParentRoute: () => DashboardRoute,
+const DashboardParentAnalyticsRoute =
+  DashboardParentAnalyticsRouteImport.update({
+    id: '/parent/analytics',
+    path: '/parent/analytics',
+    getParentRoute: () => DashboardRouteRoute,
+  } as any)
+const DashboardChildStoryRoute = DashboardChildStoryRouteImport.update({
+  id: '/child/story',
+  path: '/child/story',
+  getParentRoute: () => DashboardRouteRoute,
 } as any)
-const DashboardParentRoute = DashboardParentRouteImport.update({
-  id: '/parent',
-  path: '/parent',
-  getParentRoute: () => DashboardRoute,
+const DashboardChildSimulationRoute =
+  DashboardChildSimulationRouteImport.update({
+    id: '/child/simulation',
+    path: '/child/simulation',
+    getParentRoute: () => DashboardRouteRoute,
+  } as any)
+const DashboardChildMissionRoute = DashboardChildMissionRouteImport.update({
+  id: '/child/mission',
+  path: '/child/mission',
+  getParentRoute: () => DashboardRouteRoute,
 } as any)
-const DashboardObservationsRoute = DashboardObservationsRouteImport.update({
-  id: '/observations',
-  path: '/observations',
-  getParentRoute: () => DashboardRoute,
+const DashboardChildJourneyRoute = DashboardChildJourneyRouteImport.update({
+  id: '/child/journey',
+  path: '/child/journey',
+  getParentRoute: () => DashboardRouteRoute,
 } as any)
-const DashboardMissionRoute = DashboardMissionRouteImport.update({
-  id: '/mission',
-  path: '/mission',
-  getParentRoute: () => DashboardRoute,
+const DashboardChildEmotionRoute = DashboardChildEmotionRouteImport.update({
+  id: '/child/emotion',
+  path: '/child/emotion',
+  getParentRoute: () => DashboardRouteRoute,
 } as any)
-const DashboardJourneyRoute = DashboardJourneyRouteImport.update({
-  id: '/journey',
-  path: '/journey',
-  getParentRoute: () => DashboardRoute,
+const DashboardChildAchievementsRoute =
+  DashboardChildAchievementsRouteImport.update({
+    id: '/child/achievements',
+    path: '/child/achievements',
+    getParentRoute: () => DashboardRouteRoute,
+  } as any)
+const DashboardAdminUsersRoute = DashboardAdminUsersRouteImport.update({
+  id: '/admin/users',
+  path: '/admin/users',
+  getParentRoute: () => DashboardRouteRoute,
 } as any)
-const DashboardEmotionRoute = DashboardEmotionRouteImport.update({
-  id: '/emotion',
-  path: '/emotion',
-  getParentRoute: () => DashboardRoute,
+const DashboardAdminResourcesRoute = DashboardAdminResourcesRouteImport.update({
+  id: '/admin/resources',
+  path: '/admin/resources',
+  getParentRoute: () => DashboardRouteRoute,
 } as any)
-const DashboardCommunityRoute = DashboardCommunityRouteImport.update({
-  id: '/community',
-  path: '/community',
-  getParentRoute: () => DashboardRoute,
-} as any)
-const DashboardAnalyticsRoute = DashboardAnalyticsRouteImport.update({
-  id: '/analytics',
-  path: '/analytics',
-  getParentRoute: () => DashboardRoute,
-} as any)
-const DashboardAchievementsRoute = DashboardAchievementsRouteImport.update({
-  id: '/achievements',
-  path: '/achievements',
-  getParentRoute: () => DashboardRoute,
+const DashboardAdminCommunityRoute = DashboardAdminCommunityRouteImport.update({
+  id: '/admin/community',
+  path: '/admin/community',
+  getParentRoute: () => DashboardRouteRoute,
 } as any)
 const ApiDataActionRoute = ApiDataActionRouteImport.update({
   id: '/api/data/$action',
@@ -163,84 +242,117 @@ const ApiAuthLoginRoute = ApiAuthLoginRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
-  '/dashboard': typeof DashboardRouteWithChildren
+  '/dashboard': typeof DashboardRouteRouteWithChildren
   '/login': typeof LoginRoute
   '/register': typeof RegisterRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
-  '/dashboard/achievements': typeof DashboardAchievementsRoute
-  '/dashboard/analytics': typeof DashboardAnalyticsRoute
-  '/dashboard/community': typeof DashboardCommunityRoute
-  '/dashboard/emotion': typeof DashboardEmotionRoute
-  '/dashboard/journey': typeof DashboardJourneyRoute
-  '/dashboard/mission': typeof DashboardMissionRoute
-  '/dashboard/observations': typeof DashboardObservationsRoute
-  '/dashboard/parent': typeof DashboardParentRoute
-  '/dashboard/report': typeof DashboardReportRoute
-  '/dashboard/resources': typeof DashboardResourcesRoute
-  '/dashboard/session-notes': typeof DashboardSessionNotesRoute
-  '/dashboard/settings': typeof DashboardSettingsRoute
-  '/dashboard/simulation': typeof DashboardSimulationRoute
-  '/dashboard/story': typeof DashboardStoryRoute
-  '/dashboard/teacher': typeof DashboardTeacherRoute
-  '/dashboard/therapist': typeof DashboardTherapistRoute
   '/dashboard/': typeof DashboardIndexRoute
   '/api/auth/login': typeof ApiAuthLoginRoute
   '/api/auth/register': typeof ApiAuthRegisterRoute
   '/api/data/$action': typeof ApiDataActionRoute
+  '/dashboard/admin/community': typeof DashboardAdminCommunityRoute
+  '/dashboard/admin/resources': typeof DashboardAdminResourcesRoute
+  '/dashboard/admin/users': typeof DashboardAdminUsersRoute
+  '/dashboard/child/achievements': typeof DashboardChildAchievementsRoute
+  '/dashboard/child/emotion': typeof DashboardChildEmotionRoute
+  '/dashboard/child/journey': typeof DashboardChildJourneyRoute
+  '/dashboard/child/mission': typeof DashboardChildMissionRoute
+  '/dashboard/child/simulation': typeof DashboardChildSimulationRoute
+  '/dashboard/child/story': typeof DashboardChildStoryRoute
+  '/dashboard/parent/analytics': typeof DashboardParentAnalyticsRoute
+  '/dashboard/parent/children': typeof DashboardParentChildrenRoute
+  '/dashboard/parent/report': typeof DashboardParentReportRoute
+  '/dashboard/parent/resources': typeof DashboardParentResourcesRoute
+  '/dashboard/shared/community': typeof DashboardSharedCommunityRoute
+  '/dashboard/shared/settings': typeof DashboardSharedSettingsRoute
+  '/dashboard/teacher/analytics': typeof DashboardTeacherAnalyticsRoute
+  '/dashboard/teacher/observations': typeof DashboardTeacherObservationsRoute
+  '/dashboard/teacher/report': typeof DashboardTeacherReportRoute
+  '/dashboard/teacher/resources': typeof DashboardTeacherResourcesRoute
+  '/dashboard/therapist/analytics': typeof DashboardTherapistAnalyticsRoute
+  '/dashboard/therapist/emotion': typeof DashboardTherapistEmotionRoute
+  '/dashboard/therapist/report': typeof DashboardTherapistReportRoute
+  '/dashboard/therapist/resources': typeof DashboardTherapistResourcesRoute
+  '/dashboard/therapist/sessions': typeof DashboardTherapistSessionsRoute
+  '/dashboard/parent/': typeof DashboardParentIndexRoute
+  '/dashboard/teacher/': typeof DashboardTeacherIndexRoute
+  '/dashboard/therapist/': typeof DashboardTherapistIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
   '/register': typeof RegisterRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
-  '/dashboard/achievements': typeof DashboardAchievementsRoute
-  '/dashboard/analytics': typeof DashboardAnalyticsRoute
-  '/dashboard/community': typeof DashboardCommunityRoute
-  '/dashboard/emotion': typeof DashboardEmotionRoute
-  '/dashboard/journey': typeof DashboardJourneyRoute
-  '/dashboard/mission': typeof DashboardMissionRoute
-  '/dashboard/observations': typeof DashboardObservationsRoute
-  '/dashboard/parent': typeof DashboardParentRoute
-  '/dashboard/report': typeof DashboardReportRoute
-  '/dashboard/resources': typeof DashboardResourcesRoute
-  '/dashboard/session-notes': typeof DashboardSessionNotesRoute
-  '/dashboard/settings': typeof DashboardSettingsRoute
-  '/dashboard/simulation': typeof DashboardSimulationRoute
-  '/dashboard/story': typeof DashboardStoryRoute
-  '/dashboard/teacher': typeof DashboardTeacherRoute
-  '/dashboard/therapist': typeof DashboardTherapistRoute
   '/dashboard': typeof DashboardIndexRoute
   '/api/auth/login': typeof ApiAuthLoginRoute
   '/api/auth/register': typeof ApiAuthRegisterRoute
   '/api/data/$action': typeof ApiDataActionRoute
+  '/dashboard/admin/community': typeof DashboardAdminCommunityRoute
+  '/dashboard/admin/resources': typeof DashboardAdminResourcesRoute
+  '/dashboard/admin/users': typeof DashboardAdminUsersRoute
+  '/dashboard/child/achievements': typeof DashboardChildAchievementsRoute
+  '/dashboard/child/emotion': typeof DashboardChildEmotionRoute
+  '/dashboard/child/journey': typeof DashboardChildJourneyRoute
+  '/dashboard/child/mission': typeof DashboardChildMissionRoute
+  '/dashboard/child/simulation': typeof DashboardChildSimulationRoute
+  '/dashboard/child/story': typeof DashboardChildStoryRoute
+  '/dashboard/parent/analytics': typeof DashboardParentAnalyticsRoute
+  '/dashboard/parent/children': typeof DashboardParentChildrenRoute
+  '/dashboard/parent/report': typeof DashboardParentReportRoute
+  '/dashboard/parent/resources': typeof DashboardParentResourcesRoute
+  '/dashboard/shared/community': typeof DashboardSharedCommunityRoute
+  '/dashboard/shared/settings': typeof DashboardSharedSettingsRoute
+  '/dashboard/teacher/analytics': typeof DashboardTeacherAnalyticsRoute
+  '/dashboard/teacher/observations': typeof DashboardTeacherObservationsRoute
+  '/dashboard/teacher/report': typeof DashboardTeacherReportRoute
+  '/dashboard/teacher/resources': typeof DashboardTeacherResourcesRoute
+  '/dashboard/therapist/analytics': typeof DashboardTherapistAnalyticsRoute
+  '/dashboard/therapist/emotion': typeof DashboardTherapistEmotionRoute
+  '/dashboard/therapist/report': typeof DashboardTherapistReportRoute
+  '/dashboard/therapist/resources': typeof DashboardTherapistResourcesRoute
+  '/dashboard/therapist/sessions': typeof DashboardTherapistSessionsRoute
+  '/dashboard/parent': typeof DashboardParentIndexRoute
+  '/dashboard/teacher': typeof DashboardTeacherIndexRoute
+  '/dashboard/therapist': typeof DashboardTherapistIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
-  '/dashboard': typeof DashboardRouteWithChildren
+  '/dashboard': typeof DashboardRouteRouteWithChildren
   '/login': typeof LoginRoute
   '/register': typeof RegisterRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
-  '/dashboard/achievements': typeof DashboardAchievementsRoute
-  '/dashboard/analytics': typeof DashboardAnalyticsRoute
-  '/dashboard/community': typeof DashboardCommunityRoute
-  '/dashboard/emotion': typeof DashboardEmotionRoute
-  '/dashboard/journey': typeof DashboardJourneyRoute
-  '/dashboard/mission': typeof DashboardMissionRoute
-  '/dashboard/observations': typeof DashboardObservationsRoute
-  '/dashboard/parent': typeof DashboardParentRoute
-  '/dashboard/report': typeof DashboardReportRoute
-  '/dashboard/resources': typeof DashboardResourcesRoute
-  '/dashboard/session-notes': typeof DashboardSessionNotesRoute
-  '/dashboard/settings': typeof DashboardSettingsRoute
-  '/dashboard/simulation': typeof DashboardSimulationRoute
-  '/dashboard/story': typeof DashboardStoryRoute
-  '/dashboard/teacher': typeof DashboardTeacherRoute
-  '/dashboard/therapist': typeof DashboardTherapistRoute
   '/dashboard/': typeof DashboardIndexRoute
   '/api/auth/login': typeof ApiAuthLoginRoute
   '/api/auth/register': typeof ApiAuthRegisterRoute
   '/api/data/$action': typeof ApiDataActionRoute
+  '/dashboard/admin/community': typeof DashboardAdminCommunityRoute
+  '/dashboard/admin/resources': typeof DashboardAdminResourcesRoute
+  '/dashboard/admin/users': typeof DashboardAdminUsersRoute
+  '/dashboard/child/achievements': typeof DashboardChildAchievementsRoute
+  '/dashboard/child/emotion': typeof DashboardChildEmotionRoute
+  '/dashboard/child/journey': typeof DashboardChildJourneyRoute
+  '/dashboard/child/mission': typeof DashboardChildMissionRoute
+  '/dashboard/child/simulation': typeof DashboardChildSimulationRoute
+  '/dashboard/child/story': typeof DashboardChildStoryRoute
+  '/dashboard/parent/analytics': typeof DashboardParentAnalyticsRoute
+  '/dashboard/parent/children': typeof DashboardParentChildrenRoute
+  '/dashboard/parent/report': typeof DashboardParentReportRoute
+  '/dashboard/parent/resources': typeof DashboardParentResourcesRoute
+  '/dashboard/shared/community': typeof DashboardSharedCommunityRoute
+  '/dashboard/shared/settings': typeof DashboardSharedSettingsRoute
+  '/dashboard/teacher/analytics': typeof DashboardTeacherAnalyticsRoute
+  '/dashboard/teacher/observations': typeof DashboardTeacherObservationsRoute
+  '/dashboard/teacher/report': typeof DashboardTeacherReportRoute
+  '/dashboard/teacher/resources': typeof DashboardTeacherResourcesRoute
+  '/dashboard/therapist/analytics': typeof DashboardTherapistAnalyticsRoute
+  '/dashboard/therapist/emotion': typeof DashboardTherapistEmotionRoute
+  '/dashboard/therapist/report': typeof DashboardTherapistReportRoute
+  '/dashboard/therapist/resources': typeof DashboardTherapistResourcesRoute
+  '/dashboard/therapist/sessions': typeof DashboardTherapistSessionsRoute
+  '/dashboard/parent/': typeof DashboardParentIndexRoute
+  '/dashboard/teacher/': typeof DashboardTeacherIndexRoute
+  '/dashboard/therapist/': typeof DashboardTherapistIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -250,52 +362,74 @@ export interface FileRouteTypes {
     | '/login'
     | '/register'
     | '/sitemap.xml'
-    | '/dashboard/achievements'
-    | '/dashboard/analytics'
-    | '/dashboard/community'
-    | '/dashboard/emotion'
-    | '/dashboard/journey'
-    | '/dashboard/mission'
-    | '/dashboard/observations'
-    | '/dashboard/parent'
-    | '/dashboard/report'
-    | '/dashboard/resources'
-    | '/dashboard/session-notes'
-    | '/dashboard/settings'
-    | '/dashboard/simulation'
-    | '/dashboard/story'
-    | '/dashboard/teacher'
-    | '/dashboard/therapist'
     | '/dashboard/'
     | '/api/auth/login'
     | '/api/auth/register'
     | '/api/data/$action'
+    | '/dashboard/admin/community'
+    | '/dashboard/admin/resources'
+    | '/dashboard/admin/users'
+    | '/dashboard/child/achievements'
+    | '/dashboard/child/emotion'
+    | '/dashboard/child/journey'
+    | '/dashboard/child/mission'
+    | '/dashboard/child/simulation'
+    | '/dashboard/child/story'
+    | '/dashboard/parent/analytics'
+    | '/dashboard/parent/children'
+    | '/dashboard/parent/report'
+    | '/dashboard/parent/resources'
+    | '/dashboard/shared/community'
+    | '/dashboard/shared/settings'
+    | '/dashboard/teacher/analytics'
+    | '/dashboard/teacher/observations'
+    | '/dashboard/teacher/report'
+    | '/dashboard/teacher/resources'
+    | '/dashboard/therapist/analytics'
+    | '/dashboard/therapist/emotion'
+    | '/dashboard/therapist/report'
+    | '/dashboard/therapist/resources'
+    | '/dashboard/therapist/sessions'
+    | '/dashboard/parent/'
+    | '/dashboard/teacher/'
+    | '/dashboard/therapist/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/login'
     | '/register'
     | '/sitemap.xml'
-    | '/dashboard/achievements'
-    | '/dashboard/analytics'
-    | '/dashboard/community'
-    | '/dashboard/emotion'
-    | '/dashboard/journey'
-    | '/dashboard/mission'
-    | '/dashboard/observations'
-    | '/dashboard/parent'
-    | '/dashboard/report'
-    | '/dashboard/resources'
-    | '/dashboard/session-notes'
-    | '/dashboard/settings'
-    | '/dashboard/simulation'
-    | '/dashboard/story'
-    | '/dashboard/teacher'
-    | '/dashboard/therapist'
     | '/dashboard'
     | '/api/auth/login'
     | '/api/auth/register'
     | '/api/data/$action'
+    | '/dashboard/admin/community'
+    | '/dashboard/admin/resources'
+    | '/dashboard/admin/users'
+    | '/dashboard/child/achievements'
+    | '/dashboard/child/emotion'
+    | '/dashboard/child/journey'
+    | '/dashboard/child/mission'
+    | '/dashboard/child/simulation'
+    | '/dashboard/child/story'
+    | '/dashboard/parent/analytics'
+    | '/dashboard/parent/children'
+    | '/dashboard/parent/report'
+    | '/dashboard/parent/resources'
+    | '/dashboard/shared/community'
+    | '/dashboard/shared/settings'
+    | '/dashboard/teacher/analytics'
+    | '/dashboard/teacher/observations'
+    | '/dashboard/teacher/report'
+    | '/dashboard/teacher/resources'
+    | '/dashboard/therapist/analytics'
+    | '/dashboard/therapist/emotion'
+    | '/dashboard/therapist/report'
+    | '/dashboard/therapist/resources'
+    | '/dashboard/therapist/sessions'
+    | '/dashboard/parent'
+    | '/dashboard/teacher'
+    | '/dashboard/therapist'
   id:
     | '__root__'
     | '/'
@@ -303,31 +437,42 @@ export interface FileRouteTypes {
     | '/login'
     | '/register'
     | '/sitemap.xml'
-    | '/dashboard/achievements'
-    | '/dashboard/analytics'
-    | '/dashboard/community'
-    | '/dashboard/emotion'
-    | '/dashboard/journey'
-    | '/dashboard/mission'
-    | '/dashboard/observations'
-    | '/dashboard/parent'
-    | '/dashboard/report'
-    | '/dashboard/resources'
-    | '/dashboard/session-notes'
-    | '/dashboard/settings'
-    | '/dashboard/simulation'
-    | '/dashboard/story'
-    | '/dashboard/teacher'
-    | '/dashboard/therapist'
     | '/dashboard/'
     | '/api/auth/login'
     | '/api/auth/register'
     | '/api/data/$action'
+    | '/dashboard/admin/community'
+    | '/dashboard/admin/resources'
+    | '/dashboard/admin/users'
+    | '/dashboard/child/achievements'
+    | '/dashboard/child/emotion'
+    | '/dashboard/child/journey'
+    | '/dashboard/child/mission'
+    | '/dashboard/child/simulation'
+    | '/dashboard/child/story'
+    | '/dashboard/parent/analytics'
+    | '/dashboard/parent/children'
+    | '/dashboard/parent/report'
+    | '/dashboard/parent/resources'
+    | '/dashboard/shared/community'
+    | '/dashboard/shared/settings'
+    | '/dashboard/teacher/analytics'
+    | '/dashboard/teacher/observations'
+    | '/dashboard/teacher/report'
+    | '/dashboard/teacher/resources'
+    | '/dashboard/therapist/analytics'
+    | '/dashboard/therapist/emotion'
+    | '/dashboard/therapist/report'
+    | '/dashboard/therapist/resources'
+    | '/dashboard/therapist/sessions'
+    | '/dashboard/parent/'
+    | '/dashboard/teacher/'
+    | '/dashboard/therapist/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
-  DashboardRoute: typeof DashboardRouteWithChildren
+  DashboardRouteRoute: typeof DashboardRouteRouteWithChildren
   LoginRoute: typeof LoginRoute
   RegisterRoute: typeof RegisterRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
@@ -363,7 +508,7 @@ declare module '@tanstack/react-router' {
       id: '/dashboard'
       path: '/dashboard'
       fullPath: '/dashboard'
-      preLoaderRoute: typeof DashboardRouteImport
+      preLoaderRoute: typeof DashboardRouteRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/': {
@@ -378,119 +523,196 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/dashboard/'
       preLoaderRoute: typeof DashboardIndexRouteImport
-      parentRoute: typeof DashboardRoute
+      parentRoute: typeof DashboardRouteRoute
     }
-    '/dashboard/therapist': {
-      id: '/dashboard/therapist'
+    '/dashboard/therapist/': {
+      id: '/dashboard/therapist/'
       path: '/therapist'
-      fullPath: '/dashboard/therapist'
-      preLoaderRoute: typeof DashboardTherapistRouteImport
-      parentRoute: typeof DashboardRoute
+      fullPath: '/dashboard/therapist/'
+      preLoaderRoute: typeof DashboardTherapistIndexRouteImport
+      parentRoute: typeof DashboardRouteRoute
     }
-    '/dashboard/teacher': {
-      id: '/dashboard/teacher'
+    '/dashboard/teacher/': {
+      id: '/dashboard/teacher/'
       path: '/teacher'
-      fullPath: '/dashboard/teacher'
-      preLoaderRoute: typeof DashboardTeacherRouteImport
-      parentRoute: typeof DashboardRoute
+      fullPath: '/dashboard/teacher/'
+      preLoaderRoute: typeof DashboardTeacherIndexRouteImport
+      parentRoute: typeof DashboardRouteRoute
     }
-    '/dashboard/story': {
-      id: '/dashboard/story'
-      path: '/story'
-      fullPath: '/dashboard/story'
-      preLoaderRoute: typeof DashboardStoryRouteImport
-      parentRoute: typeof DashboardRoute
-    }
-    '/dashboard/simulation': {
-      id: '/dashboard/simulation'
-      path: '/simulation'
-      fullPath: '/dashboard/simulation'
-      preLoaderRoute: typeof DashboardSimulationRouteImport
-      parentRoute: typeof DashboardRoute
-    }
-    '/dashboard/settings': {
-      id: '/dashboard/settings'
-      path: '/settings'
-      fullPath: '/dashboard/settings'
-      preLoaderRoute: typeof DashboardSettingsRouteImport
-      parentRoute: typeof DashboardRoute
-    }
-    '/dashboard/session-notes': {
-      id: '/dashboard/session-notes'
-      path: '/session-notes'
-      fullPath: '/dashboard/session-notes'
-      preLoaderRoute: typeof DashboardSessionNotesRouteImport
-      parentRoute: typeof DashboardRoute
-    }
-    '/dashboard/resources': {
-      id: '/dashboard/resources'
-      path: '/resources'
-      fullPath: '/dashboard/resources'
-      preLoaderRoute: typeof DashboardResourcesRouteImport
-      parentRoute: typeof DashboardRoute
-    }
-    '/dashboard/report': {
-      id: '/dashboard/report'
-      path: '/report'
-      fullPath: '/dashboard/report'
-      preLoaderRoute: typeof DashboardReportRouteImport
-      parentRoute: typeof DashboardRoute
-    }
-    '/dashboard/parent': {
-      id: '/dashboard/parent'
+    '/dashboard/parent/': {
+      id: '/dashboard/parent/'
       path: '/parent'
-      fullPath: '/dashboard/parent'
-      preLoaderRoute: typeof DashboardParentRouteImport
-      parentRoute: typeof DashboardRoute
+      fullPath: '/dashboard/parent/'
+      preLoaderRoute: typeof DashboardParentIndexRouteImport
+      parentRoute: typeof DashboardRouteRoute
     }
-    '/dashboard/observations': {
-      id: '/dashboard/observations'
-      path: '/observations'
-      fullPath: '/dashboard/observations'
-      preLoaderRoute: typeof DashboardObservationsRouteImport
-      parentRoute: typeof DashboardRoute
+    '/dashboard/therapist/sessions': {
+      id: '/dashboard/therapist/sessions'
+      path: '/therapist/sessions'
+      fullPath: '/dashboard/therapist/sessions'
+      preLoaderRoute: typeof DashboardTherapistSessionsRouteImport
+      parentRoute: typeof DashboardRouteRoute
     }
-    '/dashboard/mission': {
-      id: '/dashboard/mission'
-      path: '/mission'
-      fullPath: '/dashboard/mission'
-      preLoaderRoute: typeof DashboardMissionRouteImport
-      parentRoute: typeof DashboardRoute
+    '/dashboard/therapist/resources': {
+      id: '/dashboard/therapist/resources'
+      path: '/therapist/resources'
+      fullPath: '/dashboard/therapist/resources'
+      preLoaderRoute: typeof DashboardTherapistResourcesRouteImport
+      parentRoute: typeof DashboardRouteRoute
     }
-    '/dashboard/journey': {
-      id: '/dashboard/journey'
-      path: '/journey'
-      fullPath: '/dashboard/journey'
-      preLoaderRoute: typeof DashboardJourneyRouteImport
-      parentRoute: typeof DashboardRoute
+    '/dashboard/therapist/report': {
+      id: '/dashboard/therapist/report'
+      path: '/therapist/report'
+      fullPath: '/dashboard/therapist/report'
+      preLoaderRoute: typeof DashboardTherapistReportRouteImport
+      parentRoute: typeof DashboardRouteRoute
     }
-    '/dashboard/emotion': {
-      id: '/dashboard/emotion'
-      path: '/emotion'
-      fullPath: '/dashboard/emotion'
-      preLoaderRoute: typeof DashboardEmotionRouteImport
-      parentRoute: typeof DashboardRoute
+    '/dashboard/therapist/emotion': {
+      id: '/dashboard/therapist/emotion'
+      path: '/therapist/emotion'
+      fullPath: '/dashboard/therapist/emotion'
+      preLoaderRoute: typeof DashboardTherapistEmotionRouteImport
+      parentRoute: typeof DashboardRouteRoute
     }
-    '/dashboard/community': {
-      id: '/dashboard/community'
-      path: '/community'
-      fullPath: '/dashboard/community'
-      preLoaderRoute: typeof DashboardCommunityRouteImport
-      parentRoute: typeof DashboardRoute
+    '/dashboard/therapist/analytics': {
+      id: '/dashboard/therapist/analytics'
+      path: '/therapist/analytics'
+      fullPath: '/dashboard/therapist/analytics'
+      preLoaderRoute: typeof DashboardTherapistAnalyticsRouteImport
+      parentRoute: typeof DashboardRouteRoute
     }
-    '/dashboard/analytics': {
-      id: '/dashboard/analytics'
-      path: '/analytics'
-      fullPath: '/dashboard/analytics'
-      preLoaderRoute: typeof DashboardAnalyticsRouteImport
-      parentRoute: typeof DashboardRoute
+    '/dashboard/teacher/resources': {
+      id: '/dashboard/teacher/resources'
+      path: '/teacher/resources'
+      fullPath: '/dashboard/teacher/resources'
+      preLoaderRoute: typeof DashboardTeacherResourcesRouteImport
+      parentRoute: typeof DashboardRouteRoute
     }
-    '/dashboard/achievements': {
-      id: '/dashboard/achievements'
-      path: '/achievements'
-      fullPath: '/dashboard/achievements'
-      preLoaderRoute: typeof DashboardAchievementsRouteImport
-      parentRoute: typeof DashboardRoute
+    '/dashboard/teacher/report': {
+      id: '/dashboard/teacher/report'
+      path: '/teacher/report'
+      fullPath: '/dashboard/teacher/report'
+      preLoaderRoute: typeof DashboardTeacherReportRouteImport
+      parentRoute: typeof DashboardRouteRoute
+    }
+    '/dashboard/teacher/observations': {
+      id: '/dashboard/teacher/observations'
+      path: '/teacher/observations'
+      fullPath: '/dashboard/teacher/observations'
+      preLoaderRoute: typeof DashboardTeacherObservationsRouteImport
+      parentRoute: typeof DashboardRouteRoute
+    }
+    '/dashboard/teacher/analytics': {
+      id: '/dashboard/teacher/analytics'
+      path: '/teacher/analytics'
+      fullPath: '/dashboard/teacher/analytics'
+      preLoaderRoute: typeof DashboardTeacherAnalyticsRouteImport
+      parentRoute: typeof DashboardRouteRoute
+    }
+    '/dashboard/shared/settings': {
+      id: '/dashboard/shared/settings'
+      path: '/shared/settings'
+      fullPath: '/dashboard/shared/settings'
+      preLoaderRoute: typeof DashboardSharedSettingsRouteImport
+      parentRoute: typeof DashboardRouteRoute
+    }
+    '/dashboard/shared/community': {
+      id: '/dashboard/shared/community'
+      path: '/shared/community'
+      fullPath: '/dashboard/shared/community'
+      preLoaderRoute: typeof DashboardSharedCommunityRouteImport
+      parentRoute: typeof DashboardRouteRoute
+    }
+    '/dashboard/parent/resources': {
+      id: '/dashboard/parent/resources'
+      path: '/parent/resources'
+      fullPath: '/dashboard/parent/resources'
+      preLoaderRoute: typeof DashboardParentResourcesRouteImport
+      parentRoute: typeof DashboardRouteRoute
+    }
+    '/dashboard/parent/report': {
+      id: '/dashboard/parent/report'
+      path: '/parent/report'
+      fullPath: '/dashboard/parent/report'
+      preLoaderRoute: typeof DashboardParentReportRouteImport
+      parentRoute: typeof DashboardRouteRoute
+    }
+    '/dashboard/parent/children': {
+      id: '/dashboard/parent/children'
+      path: '/parent/children'
+      fullPath: '/dashboard/parent/children'
+      preLoaderRoute: typeof DashboardParentChildrenRouteImport
+      parentRoute: typeof DashboardRouteRoute
+    }
+    '/dashboard/parent/analytics': {
+      id: '/dashboard/parent/analytics'
+      path: '/parent/analytics'
+      fullPath: '/dashboard/parent/analytics'
+      preLoaderRoute: typeof DashboardParentAnalyticsRouteImport
+      parentRoute: typeof DashboardRouteRoute
+    }
+    '/dashboard/child/story': {
+      id: '/dashboard/child/story'
+      path: '/child/story'
+      fullPath: '/dashboard/child/story'
+      preLoaderRoute: typeof DashboardChildStoryRouteImport
+      parentRoute: typeof DashboardRouteRoute
+    }
+    '/dashboard/child/simulation': {
+      id: '/dashboard/child/simulation'
+      path: '/child/simulation'
+      fullPath: '/dashboard/child/simulation'
+      preLoaderRoute: typeof DashboardChildSimulationRouteImport
+      parentRoute: typeof DashboardRouteRoute
+    }
+    '/dashboard/child/mission': {
+      id: '/dashboard/child/mission'
+      path: '/child/mission'
+      fullPath: '/dashboard/child/mission'
+      preLoaderRoute: typeof DashboardChildMissionRouteImport
+      parentRoute: typeof DashboardRouteRoute
+    }
+    '/dashboard/child/journey': {
+      id: '/dashboard/child/journey'
+      path: '/child/journey'
+      fullPath: '/dashboard/child/journey'
+      preLoaderRoute: typeof DashboardChildJourneyRouteImport
+      parentRoute: typeof DashboardRouteRoute
+    }
+    '/dashboard/child/emotion': {
+      id: '/dashboard/child/emotion'
+      path: '/child/emotion'
+      fullPath: '/dashboard/child/emotion'
+      preLoaderRoute: typeof DashboardChildEmotionRouteImport
+      parentRoute: typeof DashboardRouteRoute
+    }
+    '/dashboard/child/achievements': {
+      id: '/dashboard/child/achievements'
+      path: '/child/achievements'
+      fullPath: '/dashboard/child/achievements'
+      preLoaderRoute: typeof DashboardChildAchievementsRouteImport
+      parentRoute: typeof DashboardRouteRoute
+    }
+    '/dashboard/admin/users': {
+      id: '/dashboard/admin/users'
+      path: '/admin/users'
+      fullPath: '/dashboard/admin/users'
+      preLoaderRoute: typeof DashboardAdminUsersRouteImport
+      parentRoute: typeof DashboardRouteRoute
+    }
+    '/dashboard/admin/resources': {
+      id: '/dashboard/admin/resources'
+      path: '/admin/resources'
+      fullPath: '/dashboard/admin/resources'
+      preLoaderRoute: typeof DashboardAdminResourcesRouteImport
+      parentRoute: typeof DashboardRouteRoute
+    }
+    '/dashboard/admin/community': {
+      id: '/dashboard/admin/community'
+      path: '/admin/community'
+      fullPath: '/dashboard/admin/community'
+      preLoaderRoute: typeof DashboardAdminCommunityRouteImport
+      parentRoute: typeof DashboardRouteRoute
     }
     '/api/data/$action': {
       id: '/api/data/$action'
@@ -516,53 +738,75 @@ declare module '@tanstack/react-router' {
   }
 }
 
-interface DashboardRouteChildren {
-  DashboardAchievementsRoute: typeof DashboardAchievementsRoute
-  DashboardAnalyticsRoute: typeof DashboardAnalyticsRoute
-  DashboardCommunityRoute: typeof DashboardCommunityRoute
-  DashboardEmotionRoute: typeof DashboardEmotionRoute
-  DashboardJourneyRoute: typeof DashboardJourneyRoute
-  DashboardMissionRoute: typeof DashboardMissionRoute
-  DashboardObservationsRoute: typeof DashboardObservationsRoute
-  DashboardParentRoute: typeof DashboardParentRoute
-  DashboardReportRoute: typeof DashboardReportRoute
-  DashboardResourcesRoute: typeof DashboardResourcesRoute
-  DashboardSessionNotesRoute: typeof DashboardSessionNotesRoute
-  DashboardSettingsRoute: typeof DashboardSettingsRoute
-  DashboardSimulationRoute: typeof DashboardSimulationRoute
-  DashboardStoryRoute: typeof DashboardStoryRoute
-  DashboardTeacherRoute: typeof DashboardTeacherRoute
-  DashboardTherapistRoute: typeof DashboardTherapistRoute
+interface DashboardRouteRouteChildren {
   DashboardIndexRoute: typeof DashboardIndexRoute
+  DashboardAdminCommunityRoute: typeof DashboardAdminCommunityRoute
+  DashboardAdminResourcesRoute: typeof DashboardAdminResourcesRoute
+  DashboardAdminUsersRoute: typeof DashboardAdminUsersRoute
+  DashboardChildAchievementsRoute: typeof DashboardChildAchievementsRoute
+  DashboardChildEmotionRoute: typeof DashboardChildEmotionRoute
+  DashboardChildJourneyRoute: typeof DashboardChildJourneyRoute
+  DashboardChildMissionRoute: typeof DashboardChildMissionRoute
+  DashboardChildSimulationRoute: typeof DashboardChildSimulationRoute
+  DashboardChildStoryRoute: typeof DashboardChildStoryRoute
+  DashboardParentAnalyticsRoute: typeof DashboardParentAnalyticsRoute
+  DashboardParentChildrenRoute: typeof DashboardParentChildrenRoute
+  DashboardParentReportRoute: typeof DashboardParentReportRoute
+  DashboardParentResourcesRoute: typeof DashboardParentResourcesRoute
+  DashboardSharedCommunityRoute: typeof DashboardSharedCommunityRoute
+  DashboardSharedSettingsRoute: typeof DashboardSharedSettingsRoute
+  DashboardTeacherAnalyticsRoute: typeof DashboardTeacherAnalyticsRoute
+  DashboardTeacherObservationsRoute: typeof DashboardTeacherObservationsRoute
+  DashboardTeacherReportRoute: typeof DashboardTeacherReportRoute
+  DashboardTeacherResourcesRoute: typeof DashboardTeacherResourcesRoute
+  DashboardTherapistAnalyticsRoute: typeof DashboardTherapistAnalyticsRoute
+  DashboardTherapistEmotionRoute: typeof DashboardTherapistEmotionRoute
+  DashboardTherapistReportRoute: typeof DashboardTherapistReportRoute
+  DashboardTherapistResourcesRoute: typeof DashboardTherapistResourcesRoute
+  DashboardTherapistSessionsRoute: typeof DashboardTherapistSessionsRoute
+  DashboardParentIndexRoute: typeof DashboardParentIndexRoute
+  DashboardTeacherIndexRoute: typeof DashboardTeacherIndexRoute
+  DashboardTherapistIndexRoute: typeof DashboardTherapistIndexRoute
 }
 
-const DashboardRouteChildren: DashboardRouteChildren = {
-  DashboardAchievementsRoute: DashboardAchievementsRoute,
-  DashboardAnalyticsRoute: DashboardAnalyticsRoute,
-  DashboardCommunityRoute: DashboardCommunityRoute,
-  DashboardEmotionRoute: DashboardEmotionRoute,
-  DashboardJourneyRoute: DashboardJourneyRoute,
-  DashboardMissionRoute: DashboardMissionRoute,
-  DashboardObservationsRoute: DashboardObservationsRoute,
-  DashboardParentRoute: DashboardParentRoute,
-  DashboardReportRoute: DashboardReportRoute,
-  DashboardResourcesRoute: DashboardResourcesRoute,
-  DashboardSessionNotesRoute: DashboardSessionNotesRoute,
-  DashboardSettingsRoute: DashboardSettingsRoute,
-  DashboardSimulationRoute: DashboardSimulationRoute,
-  DashboardStoryRoute: DashboardStoryRoute,
-  DashboardTeacherRoute: DashboardTeacherRoute,
-  DashboardTherapistRoute: DashboardTherapistRoute,
+const DashboardRouteRouteChildren: DashboardRouteRouteChildren = {
   DashboardIndexRoute: DashboardIndexRoute,
+  DashboardAdminCommunityRoute: DashboardAdminCommunityRoute,
+  DashboardAdminResourcesRoute: DashboardAdminResourcesRoute,
+  DashboardAdminUsersRoute: DashboardAdminUsersRoute,
+  DashboardChildAchievementsRoute: DashboardChildAchievementsRoute,
+  DashboardChildEmotionRoute: DashboardChildEmotionRoute,
+  DashboardChildJourneyRoute: DashboardChildJourneyRoute,
+  DashboardChildMissionRoute: DashboardChildMissionRoute,
+  DashboardChildSimulationRoute: DashboardChildSimulationRoute,
+  DashboardChildStoryRoute: DashboardChildStoryRoute,
+  DashboardParentAnalyticsRoute: DashboardParentAnalyticsRoute,
+  DashboardParentChildrenRoute: DashboardParentChildrenRoute,
+  DashboardParentReportRoute: DashboardParentReportRoute,
+  DashboardParentResourcesRoute: DashboardParentResourcesRoute,
+  DashboardSharedCommunityRoute: DashboardSharedCommunityRoute,
+  DashboardSharedSettingsRoute: DashboardSharedSettingsRoute,
+  DashboardTeacherAnalyticsRoute: DashboardTeacherAnalyticsRoute,
+  DashboardTeacherObservationsRoute: DashboardTeacherObservationsRoute,
+  DashboardTeacherReportRoute: DashboardTeacherReportRoute,
+  DashboardTeacherResourcesRoute: DashboardTeacherResourcesRoute,
+  DashboardTherapistAnalyticsRoute: DashboardTherapistAnalyticsRoute,
+  DashboardTherapistEmotionRoute: DashboardTherapistEmotionRoute,
+  DashboardTherapistReportRoute: DashboardTherapistReportRoute,
+  DashboardTherapistResourcesRoute: DashboardTherapistResourcesRoute,
+  DashboardTherapistSessionsRoute: DashboardTherapistSessionsRoute,
+  DashboardParentIndexRoute: DashboardParentIndexRoute,
+  DashboardTeacherIndexRoute: DashboardTeacherIndexRoute,
+  DashboardTherapistIndexRoute: DashboardTherapistIndexRoute,
 }
 
-const DashboardRouteWithChildren = DashboardRoute._addFileChildren(
-  DashboardRouteChildren,
+const DashboardRouteRouteWithChildren = DashboardRouteRoute._addFileChildren(
+  DashboardRouteRouteChildren,
 )
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
-  DashboardRoute: DashboardRouteWithChildren,
+  DashboardRouteRoute: DashboardRouteRouteWithChildren,
   LoginRoute: LoginRoute,
   RegisterRoute: RegisterRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
