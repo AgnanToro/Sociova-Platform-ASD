@@ -1,12 +1,12 @@
 ﻿import { useState } from "react";
-import { Download, FileText } from "lucide-react";
+import { Download, FileText, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/site/page-header";
 import { loadWeeklyReport, useSociovaQuery, formatShortDate } from "@/lib/sociova-data";
 import { useAuth } from "@/lib/auth";
-import { normalizeReportPayload } from "@/lib/weekly-report";
+import { downloadWeeklyReportPdf, normalizeReportPayload } from "@/lib/weekly-report";
 import {
   Select,
   SelectContent,
@@ -26,26 +26,34 @@ const ROLE_NICE: Record<string, string> = {
 export function ReportPage() {
   const { user, role } = useAuth();
   const [childId, setChildId] = useState<string>();
+  const [downloading, setDownloading] = useState(false);
   const { data, loading, error } = useSociovaQuery(() => loadWeeklyReport(childId), [childId]);
 
-  const downloadPdf = () => {
-    if (!data?.html) {
+  const downloadPdf = async () => {
+    if (!data) {
       toast.error("Laporan belum siap");
       return;
     }
-    const printWindow = window.open("", "_blank", "noopener,noreferrer,width=920,height=720");
-    if (!printWindow) {
-      toast.error("Izinkan popup browser untuk mengunduh PDF.");
-      return;
+    setDownloading(true);
+    try {
+      await downloadWeeklyReportPdf({
+        childName: data?.child?.name ?? "Anak",
+        role: role ?? data?.role ?? "-",
+        generatedBy: user?.fullName ?? data?.generated_by ?? "-",
+        generatedAt: data?.generated_at ?? new Date().toISOString(),
+        progress: data?.progress,
+        weekly: data?.weekly ?? [],
+        activities: data?.activities ?? [],
+        observations: data?.observations ?? [],
+        notes: data?.notes ?? [],
+        recommendations: data?.recommendations ?? [],
+      });
+      toast.success("PDF berhasil diunduh");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Gagal mengunduh PDF");
+    } finally {
+      setDownloading(false);
     }
-    printWindow.document.open();
-    printWindow.document.write(data.html);
-    printWindow.document.close();
-    setTimeout(() => {
-      printWindow.focus();
-      printWindow.print();
-    }, 300);
-    toast.success("Dialog cetak terbuka. Pilih Simpan sebagai PDF.");
   };
 
   if (loading) {
@@ -76,8 +84,17 @@ export function ReportPage() {
         title="Laporan Mingguan"
         description={`Ringkasan perkembangan ${report.childName} minggu ini.`}
         actions={
-          <Button className="rounded-full btn-brand border-0" onClick={downloadPdf}>
-            <Download className="mr-2 h-4 w-4" /> Unduh PDF
+          <Button
+            className="rounded-full btn-brand border-0"
+            onClick={() => void downloadPdf()}
+            disabled={downloading || loading}
+          >
+            {downloading ? (
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            ) : (
+              <Download className="mr-2 h-4 w-4" />
+            )}
+            {downloading ? "Menyiapkan…" : "Unduh PDF"}
           </Button>
         }
       />

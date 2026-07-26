@@ -332,12 +332,19 @@ async function loadCommunity(userId: string) {
   };
 }
 
-async function analyticsFor(user: { userId: string; role: string }) {
-  const child = await childFor(user);
+async function analyticsFor(
+  user: { userId: string; role: string },
+  childId?: string | null,
+) {
+  const kids = await childrenFor(user);
+  const child = childId
+    ? (kids.find((k) => k.id === childId) ?? (await childFor(user, childId)))
+    : await childFor(user);
   if (!child) {
     return {
       demoMode: true,
       child: demoChild,
+      children: [],
       radar: [],
       weekly: [],
       monthly: [],
@@ -405,6 +412,7 @@ async function analyticsFor(user: { userId: string; role: string }) {
   return {
     demoMode: false,
     child: toSnake(child),
+    children: toSnake(kids),
     progress: toSnake(progress),
     radar,
     weekly: weeklyBars,
@@ -711,7 +719,7 @@ async function getData(
   }
 
   if (action === "community") return loadCommunity(user.userId);
-  if (action === "analytics") return analyticsFor(user);
+  if (action === "analytics") return analyticsFor(user, childId);
 
   if (action === "resources") {
     const resources = await prisma.resource.findMany({

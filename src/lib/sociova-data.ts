@@ -89,7 +89,8 @@ export const loadRoleDashboardData = (_role: "parent" | "teacher" | "therapist")
   api<any>("role");
 export const loadRoleDetailData = (childId?: string) =>
   api<any>(`role-detail${childId ? `?child_id=${encodeURIComponent(childId)}` : ""}`);
-export const loadAnalyticsData = () => api<any>("analytics");
+export const loadAnalyticsData = (childId?: string) =>
+  api<any>(`analytics${childId ? `?child_id=${encodeURIComponent(childId)}` : ""}`);
 export const loadSettingsData = () => api<any>("settings");
 export const loadWeeklyReport = (childId?: string) =>
   api<any>(`report${childId ? `?child_id=${encodeURIComponent(childId)}` : ""}`);

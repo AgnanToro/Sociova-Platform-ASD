@@ -109,3 +109,102 @@ export function buildWeeklyReportHtml(params: WeeklyReportData) {
 </body>
 </html>`;
 }
+
+/** Build & trigger direct .pdf download (no print dialog). */
+export async function downloadWeeklyReportPdf(params: WeeklyReportData) {
+  const { jsPDF } = await import("jspdf");
+  const data = normalizeReportPayload(params);
+  const doc = new jsPDF({ unit: "pt", format: "a4" });
+  const pageW = doc.internal.pageSize.getWidth();
+  const pageH = doc.internal.pageSize.getHeight();
+  const margin = 48;
+  const maxW = pageW - margin * 2;
+  let y = margin;
+
+  const ensureSpace = (need = 24) => {
+    if (y + need > pageH - margin) {
+      doc.addPage();
+      y = margin;
+    }
+  };
+
+  const write = (text: string, opts?: { size?: number; bold?: boolean; color?: [number, number, number]; gap?: number }) => {
+    const size = opts?.size ?? 11;
+    const gap = opts?.gap ?? 6;
+    doc.setFont("helvetica", opts?.bold ? "bold" : "normal");
+    doc.setFontSize(size);
+    if (opts?.color) doc.setTextColor(...opts.color);
+    else doc.setTextColor(18, 34, 34);
+    const lines = doc.splitTextToSize(text, maxW) as string[];
+    for (const line of lines) {
+      ensureSpace(size + 6);
+      doc.text(line, margin, y);
+      y += size + 4;
+    }
+    y += gap;
+  };
+
+  const section = (title: string) => {
+    ensureSpace(36);
+    y += 8;
+    write(title, { size: 13, bold: true, color: [30, 90, 160], gap: 4 });
+  };
+
+  const bulletList = (items: Array<{ title: string; text: string }>) => {
+    if (!items.length) {
+      write("Belum ada data.", { size: 10, color: [90, 110, 130] });
+      return;
+    }
+    for (const item of items) {
+      const body = item.text ? `${item.title}: ${item.text}` : item.title;
+      write(`• ${body}`, { size: 10, gap: 2 });
+    }
+  };
+
+  write("Laporan Mingguan Sociova", { size: 18, bold: true, color: [20, 60, 120], gap: 4 });
+  write(
+    `Anak: ${data.childName}  |  Dibuka oleh: ${data.generatedBy} (${data.role})  |  ${new Date(data.generatedAt).toLocaleString("id-ID")}`,
+    { size: 10, color: [90, 110, 130], gap: 10 },
+  );
+
+  section("Ringkasan Capaian");
+  write(
+    `Level ${data.progress.level}  ·  XP ${data.progress.xp}  ·  Streak ${data.progress.streak} hari`,
+    { size: 11 },
+  );
+  write(
+    `Komunikasi ${data.progress.communication}%  ·  Kepercayaan diri ${data.progress.confidence}%  ·  Empati ${data.progress.empathy}%`,
+    { size: 11 },
+  );
+
+  section("Progres Mingguan");
+  if (!data.weekly.length) {
+    write("Belum ada data mingguan.", { size: 10, color: [90, 110, 130] });
+  } else {
+    for (const w of data.weekly) {
+      write(
+        `${w.weekStart} — Komunikasi ${w.communication}% · Percaya diri ${w.confidence}% · Empati ${w.empathy}% · Aktivitas ${w.completed}`,
+        { size: 10, gap: 1 },
+      );
+      if (w.summary && w.summary !== "-") {
+        write(`  ${w.summary}`, { size: 9, color: [90, 110, 130], gap: 4 });
+      }
+    }
+  }
+
+  section("Aktivitas Terbaru");
+  bulletList(data.activities.map((a) => ({ title: a.title, text: a.detail || "" })));
+
+  section("Catatan Guru");
+  bulletList(data.observations);
+
+  section("Catatan Terapis");
+  bulletList(data.notes);
+
+  section("Rekomendasi");
+  bulletList(data.recommendations);
+
+  const safeName = data.childName.replace(/[^\w\s-]/g, "").trim().replace(/\s+/g, "-") || "anak";
+  const datePart = new Date(data.generatedAt).toISOString().slice(0, 10);
+  doc.save(`laporan-mingguan-${safeName}-${datePart}.pdf`);
+}
