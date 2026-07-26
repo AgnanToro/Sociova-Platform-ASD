@@ -108,6 +108,18 @@ export const demoScenarios = [
     quick_replies: ["Namaku Bimo.", "Senang bertemu denganmu.", "Siapa namamu?"],
   },
   {
+    title: "Pergi ke Dokter Gigi",
+    description: "Latihan menyampaikan rasa takut dan mengikuti instruksi.",
+    opening_message: "Halo, aku dokter gigi. Apa yang kamu rasakan hari ini?",
+    quick_replies: ["Saya agak takut.", "Gigi saya sakit.", "Boleh dijelaskan dulu?"],
+  },
+  {
+    title: "Berbicara dengan Guru",
+    description: "Latihan bertanya kepada guru ketika membutuhkan bantuan.",
+    opening_message: "Halo Bimo, kelihatannya kamu ingin bertanya. Apa yang ingin kamu sampaikan?",
+    quick_replies: ["Bu, boleh saya bertanya?", "Saya belum paham.", "Tolong bantu saya."],
+  },
+  {
     title: "Bertemu Teman Baru",
     description: "Latihan memulai percakapan dengan teman baru.",
     opening_message:
@@ -121,12 +133,6 @@ export const demoScenarios = [
     quick_replies: ["Saya mau roti, Bu.", "Berapa harganya?", "Terima kasih."],
   },
   {
-    title: "Berbicara dengan Guru",
-    description: "Latihan bertanya kepada guru ketika membutuhkan bantuan.",
-    opening_message: "Halo Bimo, kelihatannya kamu ingin bertanya. Apa yang ingin kamu sampaikan?",
-    quick_replies: ["Bu, boleh saya bertanya?", "Saya belum paham.", "Tolong bantu saya."],
-  },
-  {
     title: "Presentasi di Depan Kelas",
     description: "Latihan memperkenalkan ide dengan kalimat pendek dan jelas.",
     opening_message: "Sekarang giliranmu berbicara di depan kelas. Kamu bisa mulai pelan-pelan.",
@@ -135,12 +141,6 @@ export const demoScenarios = [
       "Saya ingin bercerita.",
       "Terima kasih sudah mendengarkan.",
     ],
-  },
-  {
-    title: "Pergi ke Dokter Gigi",
-    description: "Latihan menyampaikan rasa takut dan mengikuti instruksi.",
-    opening_message: "Halo, aku dokter gigi. Apa yang kamu rasakan hari ini?",
-    quick_replies: ["Saya agak takut.", "Gigi saya sakit.", "Boleh dijelaskan dulu?"],
   },
   {
     title: "Naik Transportasi Umum",

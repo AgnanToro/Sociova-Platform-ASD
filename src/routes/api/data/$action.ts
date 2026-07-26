@@ -8,6 +8,12 @@ import {
   generateSocialStory,
   scoreSimulation,
 } from "@/lib/sociova-ai";
+import {
+  BADGE_CATALOG,
+  missionStepsFor,
+  xpToCoins,
+  xpToLevel,
+} from "@/lib/child-game";
 import { buildWeeklyReportHtml, normalizeReportPayload } from "@/lib/weekly-report";
 
 const demoChild = {
@@ -100,6 +106,140 @@ async function currentUser(request: Request) {
   } catch {
     return null;
   }
+}
+
+async function ensureProgress(childId: string) {
+  const existing = await prisma.learningProgress.findFirst({ where: { childId } });
+  if (existing) return existing;
+  return prisma.learningProgress.create({
+    data: { childId, xp: 0, level: 1, streak: 0, weeklyGoal: 5, completedMissions: 0, totalMissions: 4 },
+  });
+}
+
+async function awardProgress(
+  childId: string,
+  opts: {
+    xp?: number;
+    missionStep?: boolean;
+    category?: string;
+    title?: string;
+    score?: number | null;
+    detail?: string | null;
+    skill?: Partial<{
+      communicationScore: number;
+      confidenceScore: number;
+      empathyScore: number;
+      greetingScore: number;
+      listeningScore: number;
+      conversationScore: number;
+    }>;
+  },
+) {
+  const progress = await ensureProgress(childId);
+  const addXp = Math.max(0, opts.xp ?? 0);
+  const nextXp = progress.xp + addXp;
+  const nextLevel = Math.max(progress.level, xpToLevel(nextXp));
+  const missionBump = opts.missionStep ? 1 : 0;
+  const nextCompleted = Math.min(
+    (progress.completedMissions ?? 0) + missionBump,
+    Math.max(progress.totalMissions || 4, (progress.completedMissions ?? 0) + missionBump),
+  );
+
+  // Streak: +1 if last activity was yesterday or first today; keep if already today
+  let nextStreak = progress.streak ?? 0;
+  const last = await prisma.activityHistory.findFirst({
+    where: { childId },
+    orderBy: { completedAt: "desc" },
+  });
+  const now = new Date();
+  const startOfToday = new Date(now);
+  startOfToday.setHours(0, 0, 0, 0);
+  const startOfYesterday = new Date(startOfToday);
+  startOfYesterday.setDate(startOfYesterday.getDate() - 1);
+  if (!last) {
+    nextStreak = Math.max(1, nextStreak);
+  } else {
+    const lastDate = new Date(last.completedAt);
+    if (lastDate >= startOfToday) {
+      // same day — keep streak, ensure at least 1
+      nextStreak = Math.max(1, nextStreak);
+    } else if (lastDate >= startOfYesterday) {
+      nextStreak = Math.max(1, nextStreak) + 1;
+    } else {
+      nextStreak = 1;
+    }
+  }
+
+  const skill = opts.skill ?? {};
+  const updated = await prisma.learningProgress.update({
+    where: { id: progress.id },
+    data: {
+      xp: nextXp,
+      level: nextLevel,
+      streak: nextStreak,
+      completedMissions: nextCompleted,
+      totalMissions: Math.max(progress.totalMissions || 4, nextCompleted),
+      communicationScore: Math.max(progress.communicationScore, skill.communicationScore ?? 0),
+      confidenceScore: Math.max(progress.confidenceScore, skill.confidenceScore ?? 0),
+      empathyScore: Math.max(progress.empathyScore, skill.empathyScore ?? 0),
+      greetingScore: Math.max(progress.greetingScore, skill.greetingScore ?? 0),
+      listeningScore: Math.max(progress.listeningScore, skill.listeningScore ?? 0),
+      conversationScore: Math.max(progress.conversationScore, skill.conversationScore ?? 0),
+    },
+  });
+
+  if (opts.title) {
+    await prisma.activityHistory.create({
+      data: {
+        childId,
+        title: opts.title,
+        category: opts.category ?? "Latihan",
+        score: opts.score ?? null,
+        detail: opts.detail ?? null,
+      },
+    });
+  }
+
+  const newBadges = await unlockBadges(childId, updated);
+  return {
+    progress: updated,
+    coins: xpToCoins(updated.xp),
+    xpGained: addXp,
+    leveledUp: nextLevel > progress.level,
+    newBadges,
+  };
+}
+
+async function unlockBadges(
+  childId: string,
+  progress: { xp: number; level: number; streak: number; completedMissions: number },
+) {
+  const [earned, sessionCount, emotionCount, journeyDone] = await Promise.all([
+    prisma.achievement.findMany({ where: { childId } }),
+    prisma.simulationSession.count({ where: { childId } }),
+    prisma.emotionAnalysis.count({ where: { childId } }),
+    prisma.userJourneyProgress.count({ where: { childId, status: "completed" } }),
+  ]);
+  const earnedNames = new Set(earned.map((b) => b.name));
+  const unlocked: Array<{ name: string; description: string }> = [];
+
+  for (const badge of BADGE_CATALOG) {
+    if (earnedNames.has(badge.name)) continue;
+    const b = badge as Record<string, unknown>;
+    const ok =
+      (typeof b.minSessions === "number" && sessionCount >= b.minSessions) ||
+      (typeof b.minEmotions === "number" && emotionCount >= b.minEmotions) ||
+      (typeof b.minStreak === "number" && progress.streak >= b.minStreak) ||
+      (typeof b.minLevel === "number" && progress.level >= b.minLevel) ||
+      (typeof b.minMissions === "number" && progress.completedMissions >= b.minMissions) ||
+      (typeof b.minJourney === "number" && journeyDone >= b.minJourney);
+    if (!ok) continue;
+    await prisma.achievement.create({
+      data: { childId, name: badge.name, description: badge.description },
+    });
+    unlocked.push({ name: badge.name, description: badge.description });
+  }
+  return unlocked;
 }
 
 /** Resolve linked child profile(s) by role. Child sees own profile via userId. */
@@ -339,6 +479,24 @@ async function getData(
       ]);
     const dailyMission = missions.find((mission) => mission.missionType === "daily") ?? null;
     const weeklyMission = missions.find((mission) => mission.missionType === "weekly") ?? null;
+
+    // Daily mission = activities completed today (not lifetime total)
+    const startOfToday = new Date();
+    startOfToday.setHours(0, 0, 0, 0);
+    const dailyTarget = Math.min(
+      4,
+      Math.max(1, dailyMission?.targetCount ?? 3),
+    );
+    const todayActivities = await prisma.activityHistory.count({
+      where: {
+        childId: child.id,
+        completedAt: { gte: startOfToday },
+        category: { in: ["AI Simulation", "Journey", "Emotion", "Social Story", "Mission"] },
+      },
+    });
+    const dailyDone = Math.min(todayActivities, dailyTarget);
+    const missionSteps = missionStepsFor(dailyTarget);
+
     return {
       demoMode: false,
       profile: toSnake(profile),
@@ -355,14 +513,12 @@ async function getData(
         activity.map((item) => ({ completedAt: item.completedAt, score: item.score })),
       ),
       missionProgress: {
-        done: progress?.completedMissions ?? 0,
-        total: progress?.totalMissions || dailyMission?.targetCount || 1,
-        value: Math.round(
-          ((progress?.completedMissions ?? 0) /
-            (progress?.totalMissions || dailyMission?.targetCount || 1)) *
-            100,
-        ),
+        done: dailyDone,
+        total: dailyTarget,
+        value: Math.round((dailyDone / dailyTarget) * 100),
       },
+      missionSteps,
+      coins: xpToCoins(progress?.xp ?? 0),
     };
   }
 
@@ -373,23 +529,71 @@ async function getData(
       ? await prisma.userJourneyProgress.findMany({ where: { childId: child.id } })
       : [];
     const statuses = new Map(rows.map((row) => [row.journeyLevelId, row.status]));
+    const { scenarioForJourney, simulationPlayHref } = await import("@/lib/journey-map");
+    const mapped = levels.map((level, index) => {
+      let status = statuses.get(level.id) ?? (index === 0 ? "in_progress" : "locked");
+      if (!child) {
+        status = index === 0 ? "completed" : index === 1 ? "in_progress" : "locked";
+      }
+      // unlock chain: if previous completed but this locked without row, keep locked unless first
+      if (child && index > 0 && !statuses.has(level.id)) {
+        const prev = levels[index - 1];
+        const prevStatus = statuses.get(prev.id);
+        if (prevStatus === "completed") status = "in_progress";
+        else status = "locked";
+      }
+      const scenario = scenarioForJourney(level.title);
+      return {
+        ...level,
+        status,
+        scenario,
+        play_href: simulationPlayHref({
+          scenario,
+          journeyLevelId: status === "locked" ? null : level.id,
+        }),
+      };
+    });
     return {
       demoMode: !child,
-      levels: toSnake(
-        levels.map((level) => ({
-          ...level,
-          status: statuses.get(level.id) ?? "locked",
-        })),
-      ),
+      levels: toSnake(mapped),
     };
   }
 
   if (action === "simulation") {
+    const child = await childFor(user);
+    const scenarios = await prisma.simulationScenario.findMany({
+      where: { isActive: true },
+      orderBy: { sortOrder: "asc" },
+    });
+    const { scenarioForJourney } = await import("@/lib/journey-map");
+    let unlockedScenarios = new Set(scenarios.map((s) => s.title));
+    let journeyByScenario = new Map<string, string>();
+    if (child) {
+      const levels = await prisma.journeyLevel.findMany({ orderBy: { levelOrder: "asc" } });
+      const rows = await prisma.userJourneyProgress.findMany({ where: { childId: child.id } });
+      const statusMap = new Map(rows.map((r) => [r.journeyLevelId, r.status]));
+      unlockedScenarios = new Set<string>();
+      levels.forEach((level, index) => {
+        let status = statusMap.get(level.id) ?? (index === 0 ? "in_progress" : "locked");
+        if (index > 0 && !statusMap.has(level.id)) {
+          const prev = levels[index - 1];
+          status = statusMap.get(prev.id) === "completed" ? "in_progress" : "locked";
+        }
+        const scenario = scenarioForJourney(level.title);
+        journeyByScenario.set(scenario, level.id);
+        if (status === "completed" || status === "in_progress") {
+          unlockedScenarios.add(scenario);
+        }
+      });
+      // always allow first scenario if nothing unlocked
+      if (!unlockedScenarios.size && scenarios[0]) unlockedScenarios.add(scenarios[0].title);
+    }
     return toSnake(
-      await prisma.simulationScenario.findMany({
-        where: { isActive: true },
-        orderBy: { sortOrder: "asc" },
-      }),
+      scenarios.map((s) => ({
+        ...s,
+        unlocked: unlockedScenarios.has(s.title),
+        journey_level_id: journeyByScenario.get(s.title) ?? null,
+      })),
     );
   }
 
@@ -424,14 +628,85 @@ async function getData(
         ),
       };
     }
-    const [progress, earned] = await Promise.all([
+    const [progress, earned, missions, sessionCount, emotionCount] = await Promise.all([
       prisma.learningProgress.findFirst({ where: { childId: child.id } }),
       prisma.achievement.findMany({ where: { childId: child.id } }),
+      prisma.mission.findMany({ where: { isActive: true } }),
+      prisma.simulationSession.count({ where: { childId: child.id } }),
+      prisma.emotionAnalysis.count({ where: { childId: child.id } }),
     ]);
+    const earnedNames = new Set(earned.map((b) => b.name));
+    const catalog: Array<{
+      name: string;
+      description: string;
+      icon: string;
+      earned: boolean;
+      unlocked_at: Date | null;
+    }> = BADGE_CATALOG.map((badge) => {
+      const found = earned.find((b) => b.name === badge.name);
+      return {
+        name: badge.name,
+        description: badge.description,
+        icon: badge.icon,
+        earned: earnedNames.has(badge.name),
+        unlocked_at: found?.unlockedAt ?? null,
+      };
+    });
+    for (const badge of earned) {
+      if (!catalog.some((c) => c.name === badge.name)) {
+        catalog.push({
+          name: badge.name,
+          description: badge.description ?? "",
+          icon: "award",
+          earned: true,
+          unlocked_at: badge.unlockedAt,
+        });
+      }
+    }
+    const dailyMission = missions.find((m) => m.missionType === "daily") ?? null;
+    const weeklyMission = missions.find((m) => m.missionType === "weekly") ?? null;
+    const startOfToday = new Date();
+    startOfToday.setHours(0, 0, 0, 0);
+    const startOfWeek = new Date(startOfToday);
+    startOfWeek.setDate(startOfToday.getDate() - ((startOfToday.getDay() + 6) % 7));
+    const dailyTarget = Math.min(4, Math.max(1, dailyMission?.targetCount ?? 3));
+    const weeklyTarget = weeklyMission?.targetCount ?? progress?.weeklyGoal ?? 6;
+    const [todayCount, weekCount] = await Promise.all([
+      prisma.activityHistory.count({
+        where: {
+          childId: child.id,
+          completedAt: { gte: startOfToday },
+          category: { in: ["AI Simulation", "Journey", "Emotion", "Social Story", "Mission"] },
+        },
+      }),
+      prisma.activityHistory.count({
+        where: {
+          childId: child.id,
+          completedAt: { gte: startOfWeek },
+          category: { in: ["AI Simulation", "Journey", "Emotion", "Social Story", "Mission"] },
+        },
+      }),
+    ]);
+    const dailyDone = Math.min(todayCount, dailyTarget);
+    const weeklyDone = Math.min(weekCount, weeklyTarget);
     return {
       demoMode: false,
       progress: toSnake(progress),
-      achievements: toSnake(earned.map((badge) => ({ ...badge, earned: true }))),
+      coins: xpToCoins(progress?.xp ?? 0),
+      achievements: toSnake(catalog),
+      dailyMission: toSnake(dailyMission),
+      weeklyMission: toSnake(weeklyMission),
+      missionProgress: {
+        done: dailyDone,
+        total: dailyTarget,
+        value: Math.round((dailyDone / Math.max(dailyTarget, 1)) * 100),
+      },
+      weeklyProgress: {
+        done: weeklyDone,
+        total: weeklyTarget,
+        value: Math.round((weeklyDone / Math.max(weeklyTarget, 1)) * 100),
+      },
+      stats: { sessions: sessionCount, emotions: emotionCount },
     };
   }
 
@@ -548,10 +823,56 @@ async function getData(
   if (action === "role") return roleDashboard(user);
 
   if (action === "children") {
+    const kids = await childrenFor(user);
     if (user.role !== "parent") {
-      return { children: toSnake(await childrenFor(user)) };
+      return { children: toSnake(kids), teachers: [], therapists: [] };
     }
-    return { children: toSnake(await childrenFor(user)) };
+    const userIds = [
+      ...new Set(
+        kids.flatMap((k) => [k.userId, k.teacherId, k.therapistId].filter(Boolean) as string[]),
+      ),
+    ];
+    const [profiles, staffRoles] = await Promise.all([
+      userIds.length
+        ? prisma.userProfile.findMany({ where: { userId: { in: userIds } } })
+        : Promise.resolve([]),
+      prisma.userRole.findMany({
+        where: { role: { in: ["teacher", "therapist"] } },
+        include: { profile: true },
+      }),
+    ]);
+    const byUser = new Map(profiles.map((p) => [p.userId, p]));
+    const staffMap = new Map<string, { email: string; fullName: string; role: string }>();
+    for (const row of staffRoles) {
+      if (!row.profile?.email) continue;
+      staffMap.set(`${row.role}:${row.userId}`, {
+        email: row.profile.email,
+        fullName: row.profile.fullName || row.profile.email,
+        role: row.role,
+      });
+    }
+    const teachers = [...staffMap.values()]
+      .filter((s) => s.role === "teacher")
+      .map(({ email, fullName }) => ({ email, fullName }))
+      .sort((a, b) => a.fullName.localeCompare(b.fullName));
+    const therapists = [...staffMap.values()]
+      .filter((s) => s.role === "therapist")
+      .map(({ email, fullName }) => ({ email, fullName }))
+      .sort((a, b) => a.fullName.localeCompare(b.fullName));
+    return {
+      children: toSnake(
+        kids.map((k) => ({
+          ...k,
+          loginEmail: k.userId ? (byUser.get(k.userId)?.email ?? null) : null,
+          teacherEmail: k.teacherId ? (byUser.get(k.teacherId)?.email ?? null) : null,
+          teacherName: k.teacherId ? (byUser.get(k.teacherId)?.fullName ?? null) : null,
+          therapistEmail: k.therapistId ? (byUser.get(k.therapistId)?.email ?? null) : null,
+          therapistName: k.therapistId ? (byUser.get(k.therapistId)?.fullName ?? null) : null,
+        })),
+      ),
+      teachers: toSnake(teachers),
+      therapists: toSnake(therapists),
+    };
   }
 
   if (action === "role-detail" || action === "report") {
@@ -900,11 +1221,195 @@ export const Route = createFileRoute("/api/data/$action")({
               return created;
             });
 
+            const teacherEmail = String(body.teacher_email ?? body.teacherEmail ?? "")
+              .trim()
+              .toLowerCase();
+            const therapistEmail = String(body.therapist_email ?? body.therapistEmail ?? "")
+              .trim()
+              .toLowerCase();
+
+            const linkOnCreate = async (
+              memberEmail: string,
+              memberRole: "teacher" | "therapist",
+            ) => {
+              if (!memberEmail) return;
+              const member = await prisma.userProfile.findFirst({
+                where: { email: memberEmail },
+                include: { roles: true },
+              });
+              const roleLabel = memberRole === "teacher" ? "guru" : "terapis";
+              if (!member || !member.roles.some((r) => r.role === memberRole)) {
+                throw new Error(`Akun ${roleLabel} dengan email tersebut tidak ditemukan`);
+              }
+              await prisma.careTeamMember.create({
+                data: {
+                  childId: child.id,
+                  userId: member.userId,
+                  role: memberRole,
+                  status: "active",
+                  invitedBy: user.userId,
+                },
+              });
+              await prisma.childProfile.update({
+                where: { id: child.id },
+                data:
+                  memberRole === "teacher"
+                    ? { teacherId: member.userId }
+                    : { therapistId: member.userId },
+              });
+            };
+
+            try {
+              if (teacherEmail) await linkOnCreate(teacherEmail, "teacher");
+              if (therapistEmail) await linkOnCreate(therapistEmail, "therapist");
+            } catch (err) {
+              return json(
+                {
+                  saved: true,
+                  child: toSnake(child),
+                  login: { email, role: "child" },
+                  warning:
+                    err instanceof Error
+                      ? err.message
+                      : "Akun anak dibuat, tapi guru/terapis gagal dihubungkan",
+                },
+                200,
+              );
+            }
+
+            const fresh = await prisma.childProfile.findUnique({ where: { id: child.id } });
             return json({
               saved: true,
-              child: toSnake(child),
+              child: toSnake(fresh ?? child),
               login: { email, role: "child" },
             });
+          }
+
+          if (action === "update-child") {
+            if (user.role !== "parent") {
+              return json({ error: "Hanya orang tua yang bisa mengubah data anak" }, 403);
+            }
+            const childId = String(body.child_id ?? body.childId ?? "").trim();
+            if (!childId) return json({ error: "ID anak wajib diisi" }, 400);
+            const child = await prisma.childProfile.findFirst({
+              where: { id: childId, parentId: user.userId },
+            });
+            if (!child) return json({ error: "Profil anak tidak ditemukan" }, 404);
+
+            const name = String(body.name ?? "").trim();
+            if (!name) return json({ error: "Nama anak wajib diisi" }, 400);
+            const ageRaw = body.age;
+            const age =
+              ageRaw === undefined || ageRaw === null || ageRaw === ""
+                ? null
+                : Number(ageRaw);
+            const diagnosisLevel =
+              String(body.diagnosis_level ?? body.diagnosisLevel ?? "").trim() || null;
+            const learningGoal =
+              String(body.learning_goal ?? body.learningGoal ?? "").trim() || null;
+            const newPassword = String(body.password ?? "").trim();
+            const loginEmail = String(body.email ?? "").trim().toLowerCase();
+
+            if (newPassword && newPassword.length < 8) {
+              return json({ error: "Password baru minimal 8 karakter" }, 400);
+            }
+
+            if (child.userId && loginEmail) {
+              const taken = await prisma.userProfile.findFirst({
+                where: { email: loginEmail, NOT: { userId: child.userId } },
+              });
+              if (taken) {
+                return json({ error: "Email sudah terpakai. Gunakan email lain." }, 409);
+              }
+            }
+
+            const { hashPassword } = await import("@/lib/password");
+            const updated = await prisma.$transaction(async (tx) => {
+              const row = await tx.childProfile.update({
+                where: { id: child.id },
+                data: {
+                  name,
+                  age: Number.isFinite(age as number) ? (age as number) : null,
+                  diagnosisLevel,
+                  learningGoal,
+                },
+              });
+              if (child.userId) {
+                const profileData: { fullName: string; email?: string; passwordHash?: string } = {
+                  fullName: name,
+                };
+                if (loginEmail) profileData.email = loginEmail;
+                if (newPassword) profileData.passwordHash = await hashPassword(newPassword);
+                await tx.userProfile.update({
+                  where: { userId: child.userId },
+                  data: profileData,
+                });
+              }
+              return row;
+            });
+
+            const teacherEmail = String(body.teacher_email ?? body.teacherEmail ?? "").trim().toLowerCase();
+            const therapistEmail = String(
+              body.therapist_email ?? body.therapistEmail ?? "",
+            )
+              .trim()
+              .toLowerCase();
+
+            const linkMember = async (memberEmail: string, memberRole: "teacher" | "therapist") => {
+              if (!memberEmail) return;
+              const member = await prisma.userProfile.findFirst({
+                where: { email: memberEmail },
+                include: { roles: true },
+              });
+              const roleLabel = memberRole === "teacher" ? "guru" : "terapis";
+              if (!member || !member.roles.some((r) => r.role === memberRole)) {
+                throw new Error(`Akun ${roleLabel} dengan email tersebut tidak ditemukan`);
+              }
+              await prisma.careTeamMember.deleteMany({
+                where: {
+                  childId: child.id,
+                  role: memberRole,
+                  NOT: { userId: member.userId },
+                },
+              });
+              await prisma.careTeamMember.upsert({
+                where: {
+                  childId_userId_role: {
+                    childId: child.id,
+                    userId: member.userId,
+                    role: memberRole,
+                  },
+                },
+                update: { status: "active", invitedBy: user.userId },
+                create: {
+                  childId: child.id,
+                  userId: member.userId,
+                  role: memberRole,
+                  status: "active",
+                  invitedBy: user.userId,
+                },
+              });
+              await prisma.childProfile.update({
+                where: { id: child.id },
+                data:
+                  memberRole === "teacher"
+                    ? { teacherId: member.userId }
+                    : { therapistId: member.userId },
+              });
+            };
+
+            try {
+              if (teacherEmail) await linkMember(teacherEmail, "teacher");
+              if (therapistEmail) await linkMember(therapistEmail, "therapist");
+            } catch (err) {
+              return json(
+                { error: err instanceof Error ? err.message : "Gagal menghubungkan tim" },
+                404,
+              );
+            }
+
+            const fresh = await prisma.childProfile.findUnique({ where: { id: child.id } });
+            return json({ saved: true, child: toSnake(fresh ?? updated) });
           }
 
           if (action === "delete-child") {
@@ -933,13 +1438,13 @@ export const Route = createFileRoute("/api/data/$action")({
 
           if (action === "link-care-team") {
             if (user.role !== "parent") {
-              return json({ error: "Hanya orang tua yang bisa menghubungkan care team" }, 403);
+              return json({ error: "Hanya orang tua yang bisa menghubungkan guru/terapis" }, 403);
             }
             const childId = String(body.child_id ?? body.childId ?? "");
             const memberEmail = String(body.email ?? "").trim().toLowerCase();
             const memberRole = String(body.role ?? "") as "teacher" | "therapist";
             if (!childId || !memberEmail || !["teacher", "therapist"].includes(memberRole)) {
-              return json({ error: "child_id, email, dan role (teacher|therapist) wajib" }, 400);
+              return json({ error: "Data anak, email, dan peran (guru/terapis) wajib diisi" }, 400);
             }
             const child = await prisma.childProfile.findFirst({
               where: { id: childId, parentId: user.userId },
@@ -949,12 +1454,21 @@ export const Route = createFileRoute("/api/data/$action")({
               where: { email: memberEmail },
               include: { roles: true },
             });
+            const roleLabel = memberRole === "teacher" ? "guru" : "terapis";
             if (!member || !member.roles.some((r) => r.role === memberRole)) {
               return json(
-                { error: `Akun ${memberRole} dengan email tersebut tidak ditemukan` },
+                { error: `Akun ${roleLabel} dengan email tersebut tidak ditemukan` },
                 404,
               );
             }
+            // Drop previous member of same role on this child
+            await prisma.careTeamMember.deleteMany({
+              where: {
+                childId: child.id,
+                role: memberRole,
+                NOT: { userId: member.userId },
+              },
+            });
             await prisma.careTeamMember.upsert({
               where: {
                 childId_userId_role: {
@@ -978,6 +1492,37 @@ export const Route = createFileRoute("/api/data/$action")({
                 memberRole === "teacher"
                   ? { teacherId: member.userId }
                   : { therapistId: member.userId },
+            });
+            return json({
+              saved: true,
+              member: {
+                role: memberRole,
+                email: member.email,
+                name: member.fullName,
+              },
+            });
+          }
+
+          if (action === "unlink-care-team") {
+            if (user.role !== "parent") {
+              return json({ error: "Hanya orang tua yang bisa melepaskan guru/terapis" }, 403);
+            }
+            const childId = String(body.child_id ?? body.childId ?? "").trim();
+            const memberRole = String(body.role ?? "") as "teacher" | "therapist";
+            if (!childId || !["teacher", "therapist"].includes(memberRole)) {
+              return json({ error: "Data anak dan peran (guru/terapis) wajib diisi" }, 400);
+            }
+            const child = await prisma.childProfile.findFirst({
+              where: { id: childId, parentId: user.userId },
+            });
+            if (!child) return json({ error: "Profil anak tidak ditemukan" }, 404);
+            await prisma.careTeamMember.deleteMany({
+              where: { childId: child.id, role: memberRole },
+            });
+            await prisma.childProfile.update({
+              where: { id: child.id },
+              data:
+                memberRole === "teacher" ? { teacherId: null } : { therapistId: null },
             });
             return json({ saved: true });
           }
@@ -1327,54 +1872,215 @@ export const Route = createFileRoute("/api/data/$action")({
           }
 
           if (action === "simulation") {
+            const { freePlayXp, journeyTitlesForScenario, scenarioForJourney } = await import(
+              "@/lib/journey-map"
+            );
             const scored = scoreSimulation({
               scenario: body.scenario,
               conversation: body.conversation ?? [],
+              score: body.score,
+              feedback: body.feedback,
             });
+            const score = Number(body.score ?? scored.score);
+            const scenarioTitle = String(body.scenario ?? "");
             await prisma.simulationSession.create({
               data: {
                 childId: child.id,
-                scenario: body.scenario,
+                scenario: scenarioTitle,
                 conversation: body.conversation,
-                score: body.score ?? scored.score,
+                score,
                 feedback: body.feedback ?? scored.feedback,
                 strength: body.strength ?? scored.strength,
                 suggestion: body.suggestion ?? scored.suggestion,
               },
             });
-            await prisma.activityHistory.create({
-              data: {
-                childId: child.id,
-                title: `Simulasi: ${body.scenario}`,
-                category: "AI Simulation",
-                score: body.score ?? scored.score,
-                detail: body.feedback ?? scored.feedback,
+
+            // Resolve journey level: explicit id, or active level mapped to this scenario
+            let journeyLevelId = String(body.journey_level_id ?? body.journeyLevelId ?? "").trim();
+            let level =
+              journeyLevelId
+                ? await prisma.journeyLevel.findUnique({ where: { id: journeyLevelId } })
+                : null;
+            if (!level && score >= 60) {
+              const titles = journeyTitlesForScenario(scenarioTitle);
+              const allLevels = await prisma.journeyLevel.findMany({
+                orderBy: { levelOrder: "asc" },
+              });
+              const candidates = allLevels.filter(
+                (l) =>
+                  titles.some((t) => t.toLowerCase() === l.title.toLowerCase()) ||
+                  scenarioForJourney(l.title).toLowerCase() === scenarioTitle.toLowerCase(),
+              );
+              const rows = await prisma.userJourneyProgress.findMany({
+                where: { childId: child.id },
+              });
+              const statusMap = new Map(rows.map((r) => [r.journeyLevelId, r.status]));
+              level =
+                candidates.find((l) => statusMap.get(l.id) === "in_progress") ??
+                candidates.find((l) => statusMap.get(l.id) !== "completed") ??
+                null;
+              if (level) journeyLevelId = level.id;
+            }
+
+            // Single XP source: journey reward if linked, else free-play scaled XP
+            let journeyCompleted: any = null;
+            let xpGain = freePlayXp(Number(body.difficulty ?? 2));
+            if (level && score >= 60) {
+              const existing = await prisma.userJourneyProgress.findUnique({
+                where: {
+                  childId_journeyLevelId: { childId: child.id, journeyLevelId: level.id },
+                },
+              });
+              if (existing?.status === "completed") {
+                journeyCompleted = { level_id: level.id, already: true, title: level.title };
+                xpGain = Math.round(freePlayXp(Number(body.difficulty ?? 2)) * 0.35);
+              } else {
+                xpGain = level.xpReward || 100;
+                await prisma.userJourneyProgress.upsert({
+                  where: {
+                    childId_journeyLevelId: { childId: child.id, journeyLevelId: level.id },
+                  },
+                  update: { status: "completed", completedAt: new Date() },
+                  create: {
+                    childId: child.id,
+                    journeyLevelId: level.id,
+                    status: "completed",
+                    completedAt: new Date(),
+                  },
+                });
+                const next = await prisma.journeyLevel.findFirst({
+                  where: { levelOrder: level.levelOrder + 1 },
+                });
+                if (next) {
+                  await prisma.userJourneyProgress.upsert({
+                    where: {
+                      childId_journeyLevelId: { childId: child.id, journeyLevelId: next.id },
+                    },
+                    update: { status: "in_progress" },
+                    create: {
+                      childId: child.id,
+                      journeyLevelId: next.id,
+                      status: "in_progress",
+                    },
+                  });
+                }
+                journeyCompleted = {
+                  level_id: level.id,
+                  title: level.title,
+                  xpGained: xpGain,
+                  next_level_id: next?.id ?? null,
+                };
+              }
+            }
+
+            const reward = await awardProgress(child.id, {
+              xp: xpGain,
+              missionStep: true,
+              title: journeyCompleted?.title
+                ? `Journey: ${journeyCompleted.title}`
+                : `Simulasi: ${scenarioTitle}`,
+              category: journeyCompleted && !journeyCompleted.already ? "Journey" : "AI Simulation",
+              score,
+              detail: body.feedback ?? scored.feedback,
+              skill: {
+                communicationScore: score,
+                conversationScore: score,
+                greetingScore: score,
+                confidenceScore: score,
               },
             });
-            const progress = await prisma.learningProgress.findFirst({
-              where: { childId: child.id },
+
+            return json({
+              saved: true,
+              ...scored,
+              score,
+              xpGained: reward.xpGained,
+              coins: reward.coins,
+              leveledUp: reward.leveledUp,
+              newBadges: reward.newBadges,
+              progress: toSnake(reward.progress),
+              journeyCompleted,
             });
-            if (progress) {
-              await prisma.learningProgress.update({
-                where: { id: progress.id },
-                data: {
-                  xp: progress.xp + 80,
-                  completedMissions: Math.min(
-                    progress.completedMissions + 1,
-                    progress.totalMissions || 6,
-                  ),
-                  communicationScore: Math.max(
-                    progress.communicationScore,
-                    body.score ?? scored.score,
-                  ),
-                  conversationScore: Math.max(
-                    progress.conversationScore,
-                    body.score ?? scored.score,
-                  ),
+          }
+
+          if (action === "mission-step") {
+            // Manual complete disabled — missions advance via real activities only
+            return json(
+              {
+                error:
+                  "Selesaikan misi lewat latihan: buka Simulasi, Perasaan, atau Cerita Sosial.",
+              },
+              400,
+            );
+          }
+
+          if (action === "complete-journey") {
+            if (user.role !== "child" && user.role !== "parent") {
+              return json({ error: "Hanya akun anak (atau parent) yang bisa menyelesaikan level." }, 403);
+            }
+            const levelId = String(body.level_id ?? body.levelId ?? "").trim();
+            if (!levelId) return json({ error: "level_id wajib" }, 400);
+            const level = await prisma.journeyLevel.findUnique({ where: { id: levelId } });
+            if (!level) return json({ error: "Level tidak ditemukan" }, 404);
+
+            const existing = await prisma.userJourneyProgress.findUnique({
+              where: {
+                childId_journeyLevelId: { childId: child.id, journeyLevelId: level.id },
+              },
+            });
+            if (existing?.status === "completed") {
+              return json({ saved: true, already: true, message: "Level sudah selesai" });
+            }
+
+            await prisma.userJourneyProgress.upsert({
+              where: {
+                childId_journeyLevelId: { childId: child.id, journeyLevelId: level.id },
+              },
+              update: { status: "completed", completedAt: new Date() },
+              create: {
+                childId: child.id,
+                journeyLevelId: level.id,
+                status: "completed",
+                completedAt: new Date(),
+              },
+            });
+
+            // unlock next level
+            const next = await prisma.journeyLevel.findFirst({
+              where: { levelOrder: level.levelOrder + 1 },
+            });
+            if (next) {
+              await prisma.userJourneyProgress.upsert({
+                where: {
+                  childId_journeyLevelId: { childId: child.id, journeyLevelId: next.id },
+                },
+                update: { status: "in_progress" },
+                create: {
+                  childId: child.id,
+                  journeyLevelId: next.id,
+                  status: "in_progress",
                 },
               });
             }
-            return json({ saved: true, ...scored });
+
+            const reward = await awardProgress(child.id, {
+              xp: level.xpReward || 100,
+              missionStep: true,
+              title: `Journey: ${level.title}`,
+              category: "Journey",
+              score: 95,
+              detail: level.description,
+              skill: { confidenceScore: 80, communicationScore: 75 },
+            });
+            return json({
+              saved: true,
+              xpGained: reward.xpGained,
+              coins: reward.coins,
+              leveledUp: reward.leveledUp,
+              newBadges: reward.newBadges,
+              progress: toSnake(reward.progress),
+              next_level_id: next?.id ?? null,
+            });
           }
 
           if (action === "story") {
@@ -1386,24 +2092,49 @@ export const Route = createFileRoute("/api/data/$action")({
               (body.situation?.length > 42
                 ? `${body.situation.slice(0, 42)}...`
                 : body.situation);
+            const situation = String(body.situation ?? "");
+            // Prevent XP farm: same situation already saved → no new XP
+            const already = await prisma.socialStory.findFirst({
+              where: { childId: child.id, situation },
+              orderBy: { createdAt: "desc" },
+            });
+            if (already) {
+              return json({
+                saved: true,
+                already: true,
+                generatedStory: already.generatedStory,
+                title: already.title,
+                xpGained: 0,
+                message: "Cerita ini sudah pernah dibaca. Coba cerita lain untuk XP.",
+              });
+            }
             await prisma.socialStory.create({
               data: {
                 childId: child.id,
                 title,
-                situation: body.situation,
+                situation,
                 generatedStory: generated,
               },
             });
-            await prisma.activityHistory.create({
-              data: {
-                childId: child.id,
-                title: `Cerita Sosial: ${title}`,
-                category: "Social Story",
-                detail: body.situation,
-                score: 88,
-              },
+            const reward = await awardProgress(child.id, {
+              xp: Number(body.xp ?? 40) || 40,
+              missionStep: Boolean(body.mission_step ?? true),
+              title: `Cerita Sosial: ${title}`,
+              category: "Social Story",
+              score: 88,
+              detail: situation,
+              skill: { empathyScore: 75, confidenceScore: 70 },
             });
-            return json({ saved: true, generatedStory: generated, title });
+            return json({
+              saved: true,
+              generatedStory: generated,
+              title,
+              xpGained: reward.xpGained,
+              coins: reward.coins,
+              leveledUp: reward.leveledUp,
+              newBadges: reward.newBadges,
+              progress: toSnake(reward.progress),
+            });
           }
 
           if (action === "emotion") {
@@ -1413,27 +2144,39 @@ export const Route = createFileRoute("/api/data/$action")({
                     label: body.detected_emotion,
                     confidence: body.confidence,
                     rec: body.recommendation,
+                    scores: body.scores,
                   }
-                : analyzeEmotion(String(body.input_text ?? ""));
+                : analyzeEmotion(String(body.input_text ?? body.emotion_prompt ?? ""));
+            const inputText = String(
+              body.input_text ?? body.emotion_prompt ?? `Perasaan: ${analyzed.label}`,
+            );
             await prisma.emotionAnalysis.create({
               data: {
                 childId: child.id,
-                inputText: body.input_text,
+                inputText,
                 detectedEmotion: analyzed.label,
                 confidence: analyzed.confidence,
                 recommendation: analyzed.rec,
               },
             });
-            await prisma.activityHistory.create({
-              data: {
-                childId: child.id,
-                title: `Mengenali Perasaan ${analyzed.label}`,
-                category: "Emotion",
-                detail: body.input_text,
-                score: analyzed.confidence,
-              },
+            const reward = await awardProgress(child.id, {
+              xp: Number(body.xp ?? 30) || 30,
+              missionStep: Boolean(body.mission_step ?? true),
+              title: `Mengenali Perasaan ${analyzed.label}`,
+              category: "Emotion",
+              score: analyzed.confidence,
+              detail: inputText,
+              skill: { empathyScore: analyzed.confidence, confidenceScore: 65 },
             });
-            return json({ saved: true, ...analyzed });
+            return json({
+              saved: true,
+              ...analyzed,
+              xpGained: reward.xpGained,
+              coins: reward.coins,
+              leveledUp: reward.leveledUp,
+              newBadges: reward.newBadges,
+              progress: toSnake(reward.progress),
+            });
           }
 
           if (action === "observation") {

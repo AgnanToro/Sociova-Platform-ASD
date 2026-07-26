@@ -10,13 +10,15 @@ import {
   Smile,
   BookHeart,
   TrendingUp,
+  Coins,
 } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { PageHeader } from "@/components/site/page-header";
-import { SovaBubble } from "@/components/site/sova";
+import { Sova, SovaBubble } from "@/components/site/sova";
 import { loadDashboardData, useSociovaQuery, formatShortDate } from "@/lib/sociova-data";
+import { xpToCoins } from "@/lib/child-game";
 
 export function ChildHome() {
   const { data, loading, error } = useSociovaQuery(loadDashboardData);
@@ -33,24 +35,24 @@ export function ChildHome() {
 
   const missionProgress = data.missionProgress ?? {
     done: 0,
-    total: data.dailyMission?.target_count ?? 4,
+    total: 3,
     value: 0,
   };
-  const weeklyPercent = Math.round(
-    ((data.progress?.completed_missions ?? 0) /
-      Math.max(data.progress?.total_missions ?? data.weeklyMission?.target_count ?? 6, 1)) *
-      100,
+  const weekXp = (data.weeklyBars ?? []).reduce(
+    (sum: number, bar: any) => sum + (bar.xp || 0),
+    0,
   );
+  const weeklyPercent = Math.min(100, Math.round((weekXp / Math.max(weekXp, 300)) * 100) || 0);
 
   return (
     <div className="mx-auto max-w-7xl">
       <PageHeader
-        title={`Welcome back, ${data.child?.name ?? "Friend"}`}
-        description="Hari ini adalah kesempatan baru untuk berlatih. Yuk lanjutkan perjalanan belajarmu bersama Sova."
+        title={`Halo, ${data.child?.name ?? "Teman"}!`}
+        description="Main bareng Sova: ketuk, pilih, dan kumpulkan XP. Mengetik tidak wajib."
         actions={
           <Button asChild className="rounded-full btn-brand border-0">
-            <Link to="/dashboard/child/simulation">
-              Start today's session <ArrowRight className="ml-1 h-4 w-4" />
+            <Link to="/dashboard/child/mission">
+              Main misi hari ini <ArrowRight className="ml-1 h-4 w-4" />
             </Link>
           </Button>
         }
@@ -58,7 +60,7 @@ export function ChildHome() {
 
       <SovaBubble
         className="mb-6"
-        message={`Halo, ${data.child?.name ?? ""}! Siap latihan hari ini? Aku sudah menyiapkan misi baru untukmu.`}
+        message={`Halo, ${data.child?.name ?? "teman"}! Yuk ketuk misi atau pilih perasaan. Aku temani kamu!`}
       />
       {data.demoMode && (
         <Card className="mb-6 rounded-2xl border-border/60 bg-card/60 p-4 text-sm text-muted-foreground">
@@ -66,30 +68,40 @@ export function ChildHome() {
         </Card>
       )}
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
         <StatCard
           icon={<Zap className="h-4 w-4" />}
           label="XP"
           value={Number(data.progress?.xp ?? 0).toLocaleString()}
-          hint="Learning points"
+          hint="Poin belajar"
         />
         <StatCard
           icon={<Trophy className="h-4 w-4" />}
           label="Level"
           value={`Lv. ${data.progress?.level ?? 1}`}
-          hint="Communicator"
+          hint="Naik terus!"
+        />
+        <StatCard
+          icon={<Coins className="h-4 w-4" />}
+          label="Koin"
+          value={String(data.coins ?? xpToCoins(data.progress?.xp ?? 0))}
+          hint="Hadiah Sova"
         />
         <StatCard
           icon={<Flame className="h-4 w-4" />}
           label="Streak"
-          value={`${data.progress?.streak ?? 0} days`}
-          hint="Personal best"
+          value={`${data.progress?.streak ?? 0} hari`}
+          hint="Berturut-turut"
         />
         <StatCard
           icon={<Target className="h-4 w-4" />}
-          label="Weekly goal"
-          value={`${weeklyPercent}%`}
-          hint={`${data.progress?.completed_missions ?? 0} of ${data.progress?.total_missions ?? data.weeklyMission?.target_count ?? 6} missions`}
+          label="Hari ini"
+          value={`${missionProgress.done}/${missionProgress.total}`}
+          hint={
+            missionProgress.done >= missionProgress.total
+              ? "Misi hari ini selesai!"
+              : "Latihan hari ini"
+          }
         />
       </div>
 
@@ -98,42 +110,48 @@ export function ChildHome() {
           <div className="flex items-center justify-between">
             <div>
               <div className="text-xs uppercase tracking-wide text-muted-foreground">
-                Today's Mission
+                Misi hari ini
               </div>
               <h2 className="mt-1 font-display text-xl font-bold">
-                {data.dailyMission?.title ?? "Belum ada misi"}
+                {data.dailyMission?.title ?? "Petualangan bersama Sova"}
               </h2>
               <p className="mt-1 text-sm text-muted-foreground">
-                {data.dailyMission?.description}
+                {data.dailyMission?.description ??
+                  "Main game, pilih perasaan, atau baca cerita. Sova yang hitung."}
               </p>
             </div>
-            <div className="hidden h-16 w-16 items-center justify-center rounded-2xl btn-brand border-0 md:flex">
-              <Sparkles className="h-6 w-6" />
+            <div className="hidden md:block">
+              <Sova size={64} />
             </div>
           </div>
           <div className="mt-5">
             <div className="mb-2 flex justify-between text-xs text-muted-foreground">
-              <span>Progress</span>
+              <span>Sudah dikerjakan</span>
               <span>
-                {missionProgress.done} / {missionProgress.total} steps
+                {missionProgress.done} dari {missionProgress.total}
               </span>
             </div>
             <Progress value={missionProgress.value} className="h-2" />
           </div>
           <div className="mt-5 flex flex-wrap gap-2">
             <Button asChild className="rounded-full btn-brand border-0">
-              <Link to="/dashboard/child/simulation">Continue</Link>
+              <Link to="/dashboard/child/mission">
+                <Sparkles className="mr-1 h-4 w-4" /> Main misi
+              </Link>
+            </Button>
+            <Button asChild variant="outline" className="rounded-full">
+              <Link to="/dashboard/child/emotion">Pilih perasaan</Link>
             </Button>
           </div>
         </Card>
 
         <Card className="rounded-2xl border-border/60 bg-card/60 p-6 backdrop-blur-sm">
           <div className="text-xs uppercase tracking-wide text-muted-foreground">
-            Weekly Progress
+            Minggu ini
           </div>
           <div className="mt-2 flex items-baseline gap-2">
             <div className="font-display text-3xl font-bold text-gradient-brand">
-              {weeklyPercent}%
+              {weekXp > 0 ? `${weekXp} XP` : `${weeklyPercent}%`}
             </div>
             <TrendingUp className="h-4 w-4 text-[color:var(--success)]" />
           </div>

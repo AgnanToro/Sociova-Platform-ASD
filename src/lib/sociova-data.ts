@@ -94,7 +94,12 @@ export const loadSettingsData = () => api<any>("settings");
 export const loadWeeklyReport = (childId?: string) =>
   api<any>(`report${childId ? `?child_id=${encodeURIComponent(childId)}` : ""}`);
 export const loadNotificationsData = () => api<any>("notifications");
-export const loadChildrenData = () => api<{ children: any[] }>("children");
+export const loadChildrenData = () =>
+  api<{
+    children: any[];
+    teachers?: { email: string; full_name: string }[];
+    therapists?: { email: string; full_name: string }[];
+  }>("children");
 export const loadAdminStats = () => api<any>("admin-stats");
 export const loadAdminUsers = () => api<{ users: any[] }>("admin-users");
 export const adminSetRole = (payload: { user_id: string; role: string }) =>
@@ -145,8 +150,25 @@ export const createChildProfile = (payload: {
   age?: number;
   diagnosis_level?: string;
   learning_goal?: string;
+  teacher_email?: string;
+  therapist_email?: string;
 }) =>
   api<{ saved: boolean; child: any; login?: { email: string; role: string } }>("create-child", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+export const updateChildProfile = (payload: {
+  child_id: string;
+  name: string;
+  email?: string;
+  password?: string;
+  age?: number;
+  diagnosis_level?: string;
+  learning_goal?: string;
+  teacher_email?: string;
+  therapist_email?: string;
+}) =>
+  api<{ saved: boolean; child: any }>("update-child", {
     method: "POST",
     body: JSON.stringify(payload),
   });
@@ -160,7 +182,18 @@ export const linkCareTeam = (payload: {
   email: string;
   role: "teacher" | "therapist";
 }) =>
-  api<{ saved: boolean }>("link-care-team", {
+  api<{ saved: boolean; member?: { role: string; email: string; name: string } }>(
+    "link-care-team",
+    {
+      method: "POST",
+      body: JSON.stringify(payload),
+    },
+  );
+export const unlinkCareTeam = (payload: {
+  child_id: string;
+  role: "teacher" | "therapist";
+}) =>
+  api<{ saved: boolean }>("unlink-care-team", {
     method: "POST",
     body: JSON.stringify(payload),
   });
@@ -184,10 +217,14 @@ export const saveSimulationSession = (params: any) =>
   api<any>("simulation", { method: "POST", body: JSON.stringify(params) });
 export const simulateTurn = (params: any) =>
   api<any>("simulate-turn", { method: "POST", body: JSON.stringify(params) });
-export const saveSocialStory = (situation: string, generatedStory?: string) =>
+export const saveSocialStory = (
+  situation: string,
+  generatedStory?: string,
+  title?: string,
+) =>
   api<any>("story", {
     method: "POST",
-    body: JSON.stringify({ situation, generatedStory }),
+    body: JSON.stringify({ situation, generatedStory, title }),
   });
 export const generateStory = (situation: string) =>
   api<any>("generate-story", { method: "POST", body: JSON.stringify({ situation }) });
@@ -195,6 +232,14 @@ export const saveEmotionAnalysis = (params: any) =>
   api<any>("emotion", { method: "POST", body: JSON.stringify(params) });
 export const analyzeEmotionRequest = (input_text: string) =>
   api<any>("analyze-emotion", { method: "POST", body: JSON.stringify({ input_text }) });
+export const completeMissionStep = (params: {
+  step_id: string;
+  title?: string;
+  xp?: number;
+}) =>
+  api<any>("mission-step", { method: "POST", body: JSON.stringify(params) });
+export const completeJourneyLevel = (params: { level_id: string }) =>
+  api<any>("complete-journey", { method: "POST", body: JSON.stringify(params) });
 export const createCommunityPost = (content: string) =>
   api<{ saved: boolean }>("community", {
     method: "POST",

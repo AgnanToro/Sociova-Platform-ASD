@@ -214,15 +214,14 @@ async function main() {
     await prisma.userJourneyProgress.upsert({
       where: { childId_journeyLevelId: { childId: child.id, journeyLevelId: level.id } },
       update: {
-        status:
-          level.levelOrder === 1 ? "completed" : level.levelOrder === 2 ? "in_progress" : "locked",
+        status: level.levelOrder === 1 ? "in_progress" : "locked",
+        completedAt: null,
       },
       create: {
         childId: child.id,
         journeyLevelId: level.id,
-        status:
-          level.levelOrder === 1 ? "completed" : level.levelOrder === 2 ? "in_progress" : "locked",
-        completedAt: level.levelOrder === 1 ? daysAgo(8) : null,
+        status: level.levelOrder === 1 ? "in_progress" : "locked",
+        completedAt: null,
       },
     });
   }
@@ -247,17 +246,17 @@ async function main() {
 
   const scenarios = [
     [
-      "Bertemu Teman Baru",
-      "Latihan menyapa dan mulai bermain bersama teman.",
-      "Halo, aku Dika. Boleh aku bermain bersamamu?",
-      ["Halo Dika, boleh.", "Aku mau bermain balok.", "Senang bertemu denganmu."],
+      "Perkenalkan Dirimu",
+      "Latihan menyebutkan nama dan menyapa dengan ramah.",
+      "Halo! 😊 Namaku Sova. Boleh kenalan? Siapa namamu?",
+      ["Namaku Bimo.", "Senang bertemu denganmu.", "Siapa namamu?"],
       1,
     ],
     [
-      "Membeli Makanan di Kantin",
-      "Latihan meminta makanan dengan sopan.",
-      "Halo Bimo, kamu ingin membeli apa hari ini?",
-      ["Saya mau roti, Bu.", "Berapa harganya?", "Terima kasih."],
+      "Pergi ke Dokter Gigi",
+      "Latihan menyampaikan rasa takut dan mengikuti instruksi.",
+      "Halo, aku dokter gigi. Apa yang kamu rasakan hari ini?",
+      ["Saya agak takut.", "Gigi saya sakit.", "Boleh dijelaskan dulu?"],
       2,
     ],
     [
@@ -266,6 +265,41 @@ async function main() {
       "Halo Bimo, apa yang ingin kamu tanyakan?",
       ["Bu, boleh saya bertanya?", "Saya belum paham.", "Tolong bantu saya."],
       3,
+    ],
+    [
+      "Bertemu Teman Baru",
+      "Latihan menyapa dan mulai bermain bersama teman.",
+      "Halo, aku Dika. Boleh aku bermain bersamamu?",
+      ["Halo Dika, boleh.", "Aku mau bermain balok.", "Senang bertemu denganmu."],
+      4,
+    ],
+    [
+      "Membeli Makanan di Kantin",
+      "Latihan meminta makanan dengan sopan.",
+      "Halo Bimo, kamu ingin membeli apa hari ini?",
+      ["Saya mau roti, Bu.", "Berapa harganya?", "Terima kasih."],
+      5,
+    ],
+    [
+      "Presentasi di Depan Kelas",
+      "Latihan memperkenalkan ide dengan kalimat pendek dan jelas.",
+      "Sekarang giliranmu berbicara di depan kelas. Kamu bisa mulai pelan-pelan.",
+      ["Halo teman-teman.", "Saya ingin bercerita.", "Terima kasih sudah mendengarkan."],
+      6,
+    ],
+    [
+      "Naik Transportasi Umum",
+      "Latihan meminta informasi dan menjaga keamanan di tempat umum.",
+      "Halo! Kita akan naik bus bersama. Apa yang perlu kita lakukan dulu?",
+      ["Menunggu di halte.", "Bertanya tujuan bus.", "Duduk dengan tenang."],
+      7,
+    ],
+    [
+      "Menghadiri Pesta Ulang Tahun",
+      "Latihan memberi ucapan dan bermain bersama teman.",
+      "Selamat datang di pesta ulang tahun! Apa yang ingin kamu katakan kepada temanmu?",
+      ["Selamat ulang tahun!", "Boleh aku ikut bermain?", "Terima kasih sudah mengundangku."],
+      8,
     ],
   ];
   for (const [title, description, openingMessage, quickReplies, sortOrder] of scenarios) {

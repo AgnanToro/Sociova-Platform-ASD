@@ -1,4 +1,6 @@
-﻿export type EmotionResult = {
+﻿import { getScenarioScript } from "@/lib/simulation-scenes";
+
+export type EmotionResult = {
   label: string;
   confidence: number;
   rec: string;
@@ -69,49 +71,47 @@ export function analyzeEmotion(inputText: string): EmotionResult {
 export function scoreSimulation(params: {
   scenario: string;
   conversation: Array<{ from: "ai" | "me"; text: string }>;
+  score?: number;
+  feedback?: string;
 }) {
-  const replies = params.conversation.filter((item) => item.from === "me").map((item) => item.text.trim()).filter(Boolean);
-  const joined = replies.join(" ").toLowerCase();
-  let score = 58;
-  const polite = ["halo", "hai", "terima kasih", "tolong", "boleh", "permisi", "maaf", "senang"];
-  const social = ["nama", "main", "teman", "boleh ikut", "apa kabar", "suka", "bantu"];
-  const politeHits = polite.filter((word) => joined.includes(word)).length;
-  const socialHits = social.filter((word) => joined.includes(word)).length;
-  score += Math.min(18, politeHits * 5);
-  score += Math.min(14, socialHits * 4);
-  score += Math.min(12, replies.length * 3);
-  if (replies.some((text) => text.length >= 18)) score += 6;
-  if (replies.some((text) => text.includes("?"))) score += 5;
+  const script = getScenarioScript(params.scenario);
+  const replies = params.conversation
+    .filter((item) => item.from === "me")
+    .map((item) => item.text.trim())
+    .filter(Boolean);
+
+  // Prefer client game score when provided (step-based mini-game)
+  if (typeof params.score === "number" && Number.isFinite(params.score)) {
+    const score = Math.max(0, Math.min(100, Math.round(params.score)));
+    return {
+      score,
+      strength: score >= 80 ? "Pilihan sosialmu sudah tepat." : "Kamu sudah berani mencoba.",
+      suggestion: score >= 80 ? "Main level lain untuk naik XP." : "Coba lagi dan pilih yang lebih aman/sopan.",
+      feedback: params.feedback || `Skor game ${score}%. Skenario: ${script.title}.`,
+      aiReply: script.opening,
+      nextChoices: script.defaultChoices,
+      scene: script.scene,
+      role: script.role,
+    };
+  }
+
+  let score = 55;
+  const polite = ["halo", "hai", "terima kasih", "tolong", "boleh", "permisi", "maaf", "senang", "baik"];
+  const politeHits = polite.filter((word) => replies.join(" ").toLowerCase().includes(word)).length;
+  score += Math.min(20, politeHits * 5);
+  score += Math.min(20, replies.length * 5);
   if (!replies.length) score = 40;
   score = Math.max(40, Math.min(98, score));
 
-  const strength =
-    politeHits > 0
-      ? "Sapaan dan nada bicaramu sudah sopan."
-      : socialHits > 0
-        ? "Kamu sudah mencoba membuka percakapan sosial."
-        : "Kamu sudah berani merespons lawan bicara.";
-  const suggestion =
-    socialHits === 0
-      ? 'Coba tambahkan pertanyaan sederhana seperti "Siapa namamu?" atau "Boleh aku ikut bermain?".'
-      : politeHits === 0
-        ? 'Mulai dengan sapaan singkat seperti "Halo" agar percakapan terasa lebih hangat.'
-        : "Bagus. Lain kali, coba lanjutkan dengan satu detail kecil tentang perasaan atau minatmu.";
-  const feedback = `Skor latihan ${score}%. ${strength} ${suggestion}`;
-  const replyPool = [
-    "Terima kasih sudah menjawab. Apa yang ingin kamu sampaikan selanjutnya?",
-    "Bagus. Boleh ceritakan sedikit lagi supaya aku lebih paham?",
-    "Aku mendengarkan. Kamu ingin bertanya atau berbagi sesuatu?",
-    "Senang berbicara denganmu. Apa yang membuatmu nyaman hari ini?",
-  ];
-  const aiReply = replyPool[Math.min(replyPool.length - 1, Math.max(0, replies.length - 1))];
-
   return {
     score,
-    strength,
-    suggestion,
-    feedback,
-    aiReply,
+    strength: "Kamu sudah menyelesaikan latihan.",
+    suggestion: "Main mode game pilihan untuk skor lebih akurat.",
+    feedback: params.feedback || `Skor latihan ${score}%.`,
+    aiReply: script.opening,
+    nextChoices: script.defaultChoices,
+    scene: script.scene,
+    role: script.role,
   };
 }
 
