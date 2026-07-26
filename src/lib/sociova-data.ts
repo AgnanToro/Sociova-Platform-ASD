@@ -288,6 +288,7 @@ export type { AuthRole };
 export const createResource = (payload: {
   title: string;
   description: string;
+  body?: string;
   category?: string;
   url?: string;
   language?: string;
@@ -299,6 +300,7 @@ export const updateResource = (payload: {
   id: string;
   title: string;
   description: string;
+  body?: string;
   category?: string;
   media_data_url?: string;
   lesson?: string;

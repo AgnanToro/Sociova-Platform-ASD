@@ -18,7 +18,6 @@ import {
   BookHeart,
   UserPlus,
   ChartLine,
-  Activity,
   MessageSquare,
 } from "lucide-react";
 import { Logo } from "./logo";
@@ -81,7 +80,7 @@ const ITEMS_BY_ROLE: Record<AuthRole | "default", Item[]> = {
     { to: "/dashboard/therapist", label: "Clients", icon: UserRound, exact: true },
     { to: "/dashboard/therapist/sessions", label: "Session Notes", icon: FileText },
     { to: "/dashboard/therapist/report", label: "Weekly Report", icon: FileBarChart },
-    { to: "/dashboard/therapist/emotion", label: "Emotion Trends", icon: Activity },
+    { to: "/dashboard/therapist/analytics", label: "Analytics", icon: BarChart3 },
     { to: "/dashboard/therapist/resources", label: "Materi", icon: Library },
     { to: "/dashboard/shared/community", label: "Community", icon: Users },
     { to: "/dashboard/shared/settings", label: "Settings", icon: Settings },

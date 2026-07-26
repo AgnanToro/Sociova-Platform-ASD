@@ -181,10 +181,67 @@ function detectMedia(url?: string | null): {
   return { mediaUrl: null, mediaKind: null };
 }
 
+/** Escape + turn plain text / light markdown-ish lines into HTML for the modal. */
+export function plainTextToHtml(text: string): string {
+  const raw = (text ?? "").trim();
+  if (!raw) return "<p class='text-muted'>Belum ada isi materi.</p>";
+  // Already HTML from built-in library
+  if (/<\s*(p|h[1-6]|ul|ol|li|div|br)\b/i.test(raw)) return raw;
+
+  const escape = (s: string) =>
+    s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+
+  const blocks = raw.split(/\n{2,}/).map((block) => block.trim()).filter(Boolean);
+  return blocks
+    .map((block) => {
+      const lines = block.split("\n").map((l) => l.trim()).filter(Boolean);
+      // Numbered steps
+      if (lines.every((l) => /^\d+[\.\)]\s+/.test(l))) {
+        const items = lines
+          .map((l) => `<li>${escape(l.replace(/^\d+[\.\)]\s+/, ""))}</li>`)
+          .join("");
+        return `<ol>${items}</ol>`;
+      }
+      // Bullets
+      if (lines.every((l) => /^[-•*]\s+/.test(l))) {
+        const items = lines
+          .map((l) => `<li>${escape(l.replace(/^[-•*]\s+/, ""))}</li>`)
+          .join("");
+        return `<ul>${items}</ul>`;
+      }
+      // Heading-ish short line
+      if (lines.length === 1 && lines[0].length < 60 && !/[.!?]$/.test(lines[0])) {
+        return `<h2>${escape(lines[0])}</h2>`;
+      }
+      return `<p>${lines.map(escape).join("<br/>")}</p>`;
+    })
+    .join("\n");
+}
+
+/** One-line / short blurb for resource cards. */
+export function resourceCardSummary(item: {
+  description?: string | null;
+  body?: string | null;
+}): string {
+  const desc = (item.description ?? "").trim();
+  if (desc) {
+    // Prefer first sentence / first ~140 chars for card
+    const first = desc.split(/\n+/)[0]?.trim() ?? desc;
+    if (first.length <= 160) return first;
+    return `${first.slice(0, 157).trim()}…`;
+  }
+  const body = (item.body ?? "").trim();
+  if (!body) return "Belum ada ringkasan.";
+  const first = body.split(/\n+/)[0]?.trim() ?? body;
+  if (first.length <= 160) return first;
+  return `${first.slice(0, 157).trim()}…`;
+}
+
 export function resolveResourceContent(item: {
   title?: string;
   category?: string;
   description?: string;
+  body?: string | null;
   url?: string | null;
 }): ResourceBody {
   const known = item.title ? LIBRARY[item.title] : undefined;
@@ -199,12 +256,12 @@ export function resolveResourceContent(item: {
     };
   }
 
-  const desc = item.description ?? "";
+  // User materials: full `body` for modal; fall back to description if body empty
+  const full = (item.body ?? "").trim() || (item.description ?? "");
   return {
     title: item.title ?? "Materi Sociova",
     category: item.category ?? "Guide",
-    bodyHtml: `<p>${desc.replace(/</g, "&lt;").replace(/>/g, "&gt;")}</p>`,
-    // Default animasi netral jika belum pilih template & tidak ada file
+    bodyHtml: plainTextToHtml(full),
     lesson: lessonFromUrl ?? (media.mediaUrl ? undefined : "neutral"),
     ...media,
   };

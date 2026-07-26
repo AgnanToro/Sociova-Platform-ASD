@@ -60,7 +60,6 @@ export const ROLE_ROUTES: Record<AuthRole, string[]> = {
     "/dashboard",
     "/dashboard/therapist",
     "/dashboard/therapist/sessions",
-    "/dashboard/therapist/emotion",
     "/dashboard/therapist/report",
     "/dashboard/therapist/analytics",
     "/dashboard/therapist/resources",
@@ -112,7 +111,6 @@ export const ROLE_ACCESS: Record<AuthRole, string[]> = {
   therapist: [
     "clients",
     "session-notes",
-    "emotion-trends",
     "weekly-report",
     "analytics",
     "resources",

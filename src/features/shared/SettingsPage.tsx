@@ -342,19 +342,68 @@ export function SettingsPage() {
         </div>
       </Section>
 
-      <Section title="Display">
+      <Section title="Notifikasi">
+        {(authRole === "child" || authRole === "parent") && (
+          <Toggle
+            label={
+              authRole === "parent"
+                ? "Pengingat misi harian anak"
+                : "Pengingat misi harian"
+            }
+            checked={settings.daily_mission_reminder}
+            onCheckedChange={(value) =>
+              setSettings({ ...settings, daily_mission_reminder: value })
+            }
+          />
+        )}
+        {authRole !== "child" && (
+          <Toggle
+            label={
+              authRole === "teacher"
+                ? "Laporan mingguan siswa"
+                : authRole === "therapist"
+                  ? "Laporan mingguan klien"
+                  : "Laporan mingguan"
+            }
+            checked={settings.weekly_progress_report}
+            onCheckedChange={(value) =>
+              setSettings({ ...settings, weekly_progress_report: value })
+            }
+          />
+        )}
+        {authRole === "child" && (
+          <Toggle
+            label="Ringkasan progres mingguan"
+            checked={settings.weekly_progress_report}
+            onCheckedChange={(value) =>
+              setSettings({ ...settings, weekly_progress_report: value })
+            }
+          />
+        )}
+        {authRole !== "child" && (
+          <Toggle
+            label="Balasan komunitas"
+            checked={settings.community_replies}
+            onCheckedChange={(value) =>
+              setSettings({ ...settings, community_replies: value })
+            }
+          />
+        )}
+      </Section>
+
+      <Section title="Tampilan">
         <Toggle
-          label="Large font size"
+          label="Font lebih besar"
           checked={settings.large_font}
           onCheckedChange={(value) => setSettings({ ...settings, large_font: value })}
         />
         <Toggle
-          label="High contrast mode"
+          label="Kontras tinggi"
           checked={settings.high_contrast}
           onCheckedChange={(value) => setSettings({ ...settings, high_contrast: value })}
         />
         <Toggle
-          label="Reduce motion"
+          label="Kurangi animasi"
           checked={settings.reduce_motion}
           onCheckedChange={(value) => setSettings({ ...settings, reduce_motion: value })}
         />

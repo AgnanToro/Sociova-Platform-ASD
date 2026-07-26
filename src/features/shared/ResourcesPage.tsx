@@ -31,6 +31,7 @@ import {
   LESSON_OPTIONS,
   parseLessonFromUrl,
   resolveResourceContent,
+  resourceCardSummary,
   type ResourceBody,
   type SovaLessonKind,
 } from "@/lib/resource-content";
@@ -73,13 +74,23 @@ function readFileAsDataUrl(file: File): Promise<string> {
 }
 
 export function ResourcesPage() {
-  const { role } = useAuth();
+  const { role, user } = useAuth();
   const { data: items, loading, error, refetch } = useSociovaQuery(loadResourcesData);
-  const canManage = role === "teacher" || role === "therapist" || role === "admin";
+  const canCreate = role === "teacher" || role === "therapist" || role === "admin";
+  /** Sova (no owner) → admin only. Own materials → owner (or admin). Peers → view only. */
+  const canEditOrDelete = (item: { created_by?: string | null }) => {
+    if (!user || !canCreate) return false;
+    const ownerId = item.created_by ?? null;
+    if (!ownerId) return role === "admin";
+    if (ownerId === user.userId) return true;
+    if (role === "admin") return true;
+    return false;
+  };
   const [showForm, setShowForm] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
+  const [body, setBody] = useState("");
   const [category, setCategory] = useState("");
   const [lesson, setLesson] = useState<SovaLessonKind>("neutral");
   const [file, setFile] = useState<File | null>(null);
@@ -97,6 +108,7 @@ export function ResourcesPage() {
       (r: any) =>
         (r.title ?? "").toLowerCase().includes(needle) ||
         (r.description ?? "").toLowerCase().includes(needle) ||
+        (r.body ?? "").toLowerCase().includes(needle) ||
         (r.author_name ?? "").toLowerCase().includes(needle) ||
         (r.category ?? "").toLowerCase().includes(needle),
     );
@@ -106,6 +118,7 @@ export function ResourcesPage() {
     setEditId(null);
     setTitle("");
     setDescription("");
+    setBody("");
     setCategory("");
     setLesson("neutral");
     setFile(null);
@@ -142,7 +155,19 @@ export function ResourcesPage() {
     const resolved = resolveResourceContent(item);
     setEditId(item.id);
     setTitle(item.title ?? "");
-    setDescription(item.description ?? "");
+    // Card blurb only — if old data stuffed full text into description, peel first line
+    const rawDesc = String(item.description ?? "").trim();
+    const rawBody = String(item.body ?? "").trim();
+    if (rawBody) {
+      setDescription(rawDesc.split(/\n+/)[0]?.slice(0, 160) ?? rawDesc.slice(0, 160));
+      setBody(rawBody);
+    } else if (rawDesc.length > 180) {
+      setDescription(rawDesc.split(/\n+/)[0]?.slice(0, 160) || rawDesc.slice(0, 160));
+      setBody(rawDesc);
+    } else {
+      setDescription(rawDesc);
+      setBody("");
+    }
     setCategory(item.category ?? "Guide");
     setLesson(resolved.lesson ?? parseLessonFromUrl(item.url) ?? "neutral");
     setFile(null);
@@ -162,12 +187,15 @@ export function ResourcesPage() {
     try {
       let media_data_url: string | undefined;
       if (file) media_data_url = await readFileAsDataUrl(file);
+      const blurb = description.trim().slice(0, 220);
+      const content = body.trim() || undefined;
 
       if (editId) {
         await updateResource({
           id: editId,
           title: title.trim(),
-          description: description.trim(),
+          description: blurb,
+          body: content,
           category: category.trim() || "Guide",
           media_data_url,
           lesson,
@@ -176,7 +204,8 @@ export function ResourcesPage() {
       } else {
         await createResource({
           title: title.trim(),
-          description: description.trim(),
+          description: blurb,
+          body: content,
           category: category.trim() || "Guide",
           media_data_url,
           lesson,
@@ -213,12 +242,12 @@ export function ResourcesPage() {
       <PageHeader
         title="Materi"
         description={
-          canManage
-            ? "Bagikan panduan untuk keluarga. Materi dari Sova dan rekan bisa dibuka kapan saja."
+          canCreate
+            ? "Bagikan panduan untuk keluarga. Materi Sova hanya bisa diubah admin; materi rekan hanya bisa dibuka."
             : "Panduan dari Sova, guru, dan terapis untuk mendampingi anak."
         }
         actions={
-          canManage ? (
+          canCreate ? (
             <Button
               className="rounded-full btn-brand border-0"
               onClick={() => {
@@ -246,7 +275,7 @@ export function ResourcesPage() {
         />
       </div>
 
-      {canManage && showForm && (
+      {canCreate && showForm && (
         <Card className="rounded-2xl border-border/60 bg-card/60 p-6">
           <div className="mb-4 font-display text-lg font-bold">
             {editId ? "Edit materi" : "Materi baru"}
@@ -279,11 +308,26 @@ export function ResourcesPage() {
               <Textarea
                 id="res-desc"
                 value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                placeholder="Ringkasan singkat"
+                onChange={(e) => setDescription(e.target.value.slice(0, 220))}
+                placeholder="1–2 kalimat singkat untuk kartu materi"
                 className="rounded-xl"
-                rows={3}
+                rows={2}
+                maxLength={220}
                 required
+              />
+              <p className="text-[11px] text-muted-foreground">{description.length}/220</p>
+            </div>
+            <div className="space-y-1.5 md:col-span-2">
+              <Label htmlFor="res-body">Isi materi</Label>
+              <Textarea
+                id="res-body"
+                value={body}
+                onChange={(e) => setBody(e.target.value)}
+                placeholder={
+                  "Tulis isi lengkap di sini.\n\nContoh:\n1. Tatap lawan bicara jika nyaman.\n2. Ucapkan salam dengan ramah.\n3. Tanyakan kabarnya.\n\nPesan dari Sova: …"
+                }
+                className="min-h-[160px] rounded-xl"
+                rows={8}
               />
             </div>
             <div className="space-y-2 md:col-span-2">
@@ -373,7 +417,9 @@ export function ResourcesPage() {
                 )}
               </div>
               <div className="mt-3 font-semibold leading-snug">{r.title}</div>
-              <p className="mt-1 flex-1 text-sm text-muted-foreground">{r.description}</p>
+              <p className="mt-1 flex-1 text-sm text-muted-foreground line-clamp-3">
+                {resourceCardSummary(r)}
+              </p>
               <p className="mt-2 text-xs text-muted-foreground">
                 Oleh {author}
                 {when ? ` · ${when}` : ""}
@@ -386,7 +432,7 @@ export function ResourcesPage() {
                 >
                   <Eye className="mr-2 h-4 w-4" /> Buka
                 </Button>
-                {canManage && (
+                {canEditOrDelete(r) && (
                   <div className="grid grid-cols-2 gap-2">
                     <Button
                       type="button"

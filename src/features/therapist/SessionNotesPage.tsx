@@ -28,10 +28,10 @@ export function SessionNotesPage() {
   const [childId, setChildId] = useState<string | undefined>();
   const detail = useSociovaQuery(() => loadRoleDetailData(childId), [childId]);
 
-  const [title, setTitle] = useState("Catatan sesi");
+  const [title, setTitle] = useState("");
   const [note, setNote] = useState("");
   const [nextFocus, setNextFocus] = useState("");
-  const [recTitle, setRecTitle] = useState("Rekomendasi terapi");
+  const [recTitle, setRecTitle] = useState("");
   const [recDesc, setRecDesc] = useState("");
   const [saving, setSaving] = useState(false);
 
@@ -60,6 +60,7 @@ export function SessionNotesPage() {
         child_id: childId ?? activeChild?.id,
       });
       toast.success("Catatan sesi disimpan");
+      setTitle("");
       setNote("");
       setNextFocus("");
       detail.refetch();
@@ -87,6 +88,7 @@ export function SessionNotesPage() {
         child_id: childId ?? activeChild?.id,
       });
       toast.success("Rekomendasi dikirim ke orang tua");
+      setRecTitle("");
       setRecDesc("");
       detail.refetch();
     } catch (err) {
@@ -159,7 +161,7 @@ export function SessionNotesPage() {
             <Input
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              placeholder="Judul sesi"
+              placeholder="Judul sesi, contoh: Latihan giliran bicara"
               className="rounded-xl"
             />
             <Textarea
@@ -167,7 +169,7 @@ export function SessionNotesPage() {
               onChange={(e) => setNote(e.target.value)}
               rows={4}
               className="rounded-xl"
-              placeholder="Ringkasan sesi"
+              placeholder="Ringkasan sesi: apa yang dilatih, respons anak, catatan penting…"
             />
             <Textarea
               value={nextFocus}
@@ -190,7 +192,7 @@ export function SessionNotesPage() {
             <Input
               value={recTitle}
               onChange={(e) => setRecTitle(e.target.value)}
-              placeholder="Judul rekomendasi"
+              placeholder="Judul, contoh: Latihan menyapa di rumah"
               className="rounded-xl"
             />
             <Textarea
@@ -198,7 +200,7 @@ export function SessionNotesPage() {
               onChange={(e) => setRecDesc(e.target.value)}
               rows={5}
               className="rounded-xl"
-              placeholder="Saran praktis di rumah"
+              placeholder="Saran praktis untuk orang tua di rumah…"
             />
             <Button disabled={saving || !recDesc.trim()} className="rounded-full btn-brand border-0">
               {saving ? "Menyimpan…" : "Kirim rekomendasi"}

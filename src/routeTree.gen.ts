@@ -21,7 +21,6 @@ import { Route as DashboardParentIndexRouteImport } from './routes/dashboard/par
 import { Route as DashboardTherapistSessionsRouteImport } from './routes/dashboard/therapist/sessions'
 import { Route as DashboardTherapistResourcesRouteImport } from './routes/dashboard/therapist/resources'
 import { Route as DashboardTherapistReportRouteImport } from './routes/dashboard/therapist/report'
-import { Route as DashboardTherapistEmotionRouteImport } from './routes/dashboard/therapist/emotion'
 import { Route as DashboardTherapistAnalyticsRouteImport } from './routes/dashboard/therapist/analytics'
 import { Route as DashboardTeacherResourcesRouteImport } from './routes/dashboard/teacher/resources'
 import { Route as DashboardTeacherReportRouteImport } from './routes/dashboard/teacher/report'
@@ -107,12 +106,6 @@ const DashboardTherapistReportRoute =
   DashboardTherapistReportRouteImport.update({
     id: '/therapist/report',
     path: '/therapist/report',
-    getParentRoute: () => DashboardRouteRoute,
-  } as any)
-const DashboardTherapistEmotionRoute =
-  DashboardTherapistEmotionRouteImport.update({
-    id: '/therapist/emotion',
-    path: '/therapist/emotion',
     getParentRoute: () => DashboardRouteRoute,
   } as any)
 const DashboardTherapistAnalyticsRoute =
@@ -270,7 +263,6 @@ export interface FileRoutesByFullPath {
   '/dashboard/teacher/report': typeof DashboardTeacherReportRoute
   '/dashboard/teacher/resources': typeof DashboardTeacherResourcesRoute
   '/dashboard/therapist/analytics': typeof DashboardTherapistAnalyticsRoute
-  '/dashboard/therapist/emotion': typeof DashboardTherapistEmotionRoute
   '/dashboard/therapist/report': typeof DashboardTherapistReportRoute
   '/dashboard/therapist/resources': typeof DashboardTherapistResourcesRoute
   '/dashboard/therapist/sessions': typeof DashboardTherapistSessionsRoute
@@ -307,7 +299,6 @@ export interface FileRoutesByTo {
   '/dashboard/teacher/report': typeof DashboardTeacherReportRoute
   '/dashboard/teacher/resources': typeof DashboardTeacherResourcesRoute
   '/dashboard/therapist/analytics': typeof DashboardTherapistAnalyticsRoute
-  '/dashboard/therapist/emotion': typeof DashboardTherapistEmotionRoute
   '/dashboard/therapist/report': typeof DashboardTherapistReportRoute
   '/dashboard/therapist/resources': typeof DashboardTherapistResourcesRoute
   '/dashboard/therapist/sessions': typeof DashboardTherapistSessionsRoute
@@ -346,7 +337,6 @@ export interface FileRoutesById {
   '/dashboard/teacher/report': typeof DashboardTeacherReportRoute
   '/dashboard/teacher/resources': typeof DashboardTeacherResourcesRoute
   '/dashboard/therapist/analytics': typeof DashboardTherapistAnalyticsRoute
-  '/dashboard/therapist/emotion': typeof DashboardTherapistEmotionRoute
   '/dashboard/therapist/report': typeof DashboardTherapistReportRoute
   '/dashboard/therapist/resources': typeof DashboardTherapistResourcesRoute
   '/dashboard/therapist/sessions': typeof DashboardTherapistSessionsRoute
@@ -386,7 +376,6 @@ export interface FileRouteTypes {
     | '/dashboard/teacher/report'
     | '/dashboard/teacher/resources'
     | '/dashboard/therapist/analytics'
-    | '/dashboard/therapist/emotion'
     | '/dashboard/therapist/report'
     | '/dashboard/therapist/resources'
     | '/dashboard/therapist/sessions'
@@ -423,7 +412,6 @@ export interface FileRouteTypes {
     | '/dashboard/teacher/report'
     | '/dashboard/teacher/resources'
     | '/dashboard/therapist/analytics'
-    | '/dashboard/therapist/emotion'
     | '/dashboard/therapist/report'
     | '/dashboard/therapist/resources'
     | '/dashboard/therapist/sessions'
@@ -461,7 +449,6 @@ export interface FileRouteTypes {
     | '/dashboard/teacher/report'
     | '/dashboard/teacher/resources'
     | '/dashboard/therapist/analytics'
-    | '/dashboard/therapist/emotion'
     | '/dashboard/therapist/report'
     | '/dashboard/therapist/resources'
     | '/dashboard/therapist/sessions'
@@ -565,13 +552,6 @@ declare module '@tanstack/react-router' {
       path: '/therapist/report'
       fullPath: '/dashboard/therapist/report'
       preLoaderRoute: typeof DashboardTherapistReportRouteImport
-      parentRoute: typeof DashboardRouteRoute
-    }
-    '/dashboard/therapist/emotion': {
-      id: '/dashboard/therapist/emotion'
-      path: '/therapist/emotion'
-      fullPath: '/dashboard/therapist/emotion'
-      preLoaderRoute: typeof DashboardTherapistEmotionRouteImport
       parentRoute: typeof DashboardRouteRoute
     }
     '/dashboard/therapist/analytics': {
@@ -760,7 +740,6 @@ interface DashboardRouteRouteChildren {
   DashboardTeacherReportRoute: typeof DashboardTeacherReportRoute
   DashboardTeacherResourcesRoute: typeof DashboardTeacherResourcesRoute
   DashboardTherapistAnalyticsRoute: typeof DashboardTherapistAnalyticsRoute
-  DashboardTherapistEmotionRoute: typeof DashboardTherapistEmotionRoute
   DashboardTherapistReportRoute: typeof DashboardTherapistReportRoute
   DashboardTherapistResourcesRoute: typeof DashboardTherapistResourcesRoute
   DashboardTherapistSessionsRoute: typeof DashboardTherapistSessionsRoute
@@ -791,7 +770,6 @@ const DashboardRouteRouteChildren: DashboardRouteRouteChildren = {
   DashboardTeacherReportRoute: DashboardTeacherReportRoute,
   DashboardTeacherResourcesRoute: DashboardTeacherResourcesRoute,
   DashboardTherapistAnalyticsRoute: DashboardTherapistAnalyticsRoute,
-  DashboardTherapistEmotionRoute: DashboardTherapistEmotionRoute,
   DashboardTherapistReportRoute: DashboardTherapistReportRoute,
   DashboardTherapistResourcesRoute: DashboardTherapistResourcesRoute,
   DashboardTherapistSessionsRoute: DashboardTherapistSessionsRoute,

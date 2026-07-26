@@ -1,4 +1,4 @@
-﻿import { useMemo, useState } from "react";
+﻿import { useState } from "react";
 import { Angry, Frown, Meh, Smile, Sparkles, Wind, Heart } from "lucide-react";
 import { toast } from "sonner";
 import { Card } from "@/components/ui/card";
@@ -13,7 +13,6 @@ import {
   saveEmotionAnalysis,
   useSociovaQuery,
 } from "@/lib/sociova-data";
-import { useAuth } from "@/lib/auth";
 import { EMOTION_FACES, type EmotionFace } from "@/lib/child-game";
 import { cn } from "@/lib/utils";
 
@@ -26,7 +25,6 @@ const FACE_ICONS = {
 } as const;
 
 export function EmotionPage() {
-  const { role } = useAuth();
   const { data, loading, error, refetch } = useSociovaQuery(loadEmotionData);
   const [selected, setSelected] = useState<EmotionFace | null>(null);
   const [text, setText] = useState("");
@@ -106,28 +104,14 @@ export function EmotionPage() {
     { l: "Marah", v: 0, c: "var(--destructive)" },
   ];
 
-  const trend = useMemo(() => {
-    const logs = data?.logs ?? [];
-    const map = new Map<string, number>();
-    for (const log of logs) {
-      const key = log.detected_emotion || "Lainnya";
-      map.set(key, (map.get(key) ?? 0) + 1);
-    }
-    return Array.from(map.entries()).map(([label, count]) => ({ label, count }));
-  }, [data]);
-
-  if (loading) return <StateCard title="Loading emotion logs" description="Memuat catatan emosi." />;
-  if (error) return <StateCard title="Emotion data unavailable" description={error} />;
+  if (loading) return <StateCard title="Sedang memuat" description="Memuat catatan emosi." />;
+  if (error) return <StateCard title="Belum bisa dibuka" description={error} />;
 
   return (
     <div className="mx-auto max-w-6xl space-y-4">
       <PageHeader
-        title={role === "therapist" ? "Emotion Trends" : "Emotion Analyzer"}
-        description={
-          role === "therapist"
-            ? "Pantau tren emosi klien dan simulasikan analisis teks terbaru."
-            : "Kenali perasaan dengan mengetuk wajah — mengetik opsional."
-        }
+        title="Latihan Emosi"
+        description="Kenali perasaan dengan mengetuk wajah — mengetik opsional."
       />
 
       <SovaBubble
@@ -137,17 +121,6 @@ export function EmotionPage() {
             : "Halo! Pilih wajah yang paling mirip perasaanmu sekarang."
         }
       />
-
-      {role === "therapist" && trend.length > 0 && (
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          {trend.map((item) => (
-            <Card key={item.label} className="rounded-2xl border-border/60 bg-card/60 p-4">
-              <div className="text-xs text-muted-foreground">{item.label}</div>
-              <div className="mt-1 font-display text-2xl font-bold">{item.count}</div>
-            </Card>
-          ))}
-        </div>
-      )}
 
       <div className="grid gap-4 lg:grid-cols-2">
         <Card className="rounded-2xl border-border/60 bg-card/60 p-6 backdrop-blur-sm">

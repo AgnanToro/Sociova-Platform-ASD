@@ -750,73 +750,263 @@ async function getData(
 
   if (action === "notifications") {
     const settings = await prisma.userSettings.findUnique({ where: { userId: user.userId } });
-    const child = await childFor(user);
-    const items: Array<{ id: string; title: string; body: string; time: string; type: string }> = [];
-    if (settings?.dailyMissionReminder !== false) {
+    const kids = await childrenFor(user);
+    const childIds = kids.map((k) => k.id);
+    const childName = (id: string) => kids.find((k) => k.id === id)?.name ?? "Anak";
+    type Notif = {
+      id: string;
+      title: string;
+      body: string;
+      time: string;
+      type: string;
+      at?: number;
+    };
+    const items: Notif[] = [];
+    const wantMission = settings?.dailyMissionReminder !== false;
+    const wantWeekly = settings?.weeklyProgressReport !== false;
+    const wantCommunity = Boolean(settings?.communityReplies);
+    const dayKey = new Date().toISOString().slice(0, 10);
+    const weekKey = (() => {
+      const d = new Date();
+      const oneJan = new Date(d.getFullYear(), 0, 1);
+      const week = Math.ceil(((d.getTime() - oneJan.getTime()) / 86400000 + oneJan.getDay() + 1) / 7);
+      return `${d.getFullYear()}-W${week}`;
+    })();
+    // Static reminders: only once per day/week (id changes → counts as new)
+    const startOfToday = new Date();
+    startOfToday.setHours(0, 0, 0, 0);
+    const startOfWeek = new Date(startOfToday);
+    startOfWeek.setDate(startOfWeek.getDate() - startOfWeek.getDay());
+
+    if (user.role === "child") {
+      if (wantMission) {
+        items.push({
+          id: `mission-${dayKey}`,
+          title: "Misi harian",
+          body: "Yuk selesaikan misi hari ini biar streak tetap jalan!",
+          time: "Hari ini",
+          type: "mission",
+          at: startOfToday.getTime(),
+        });
+      }
+      if (wantWeekly) {
+        items.push({
+          id: `weekly-${weekKey}`,
+          title: "Progres minggu ini",
+          body: "Lihat seberapa hebat latihanmu di menu Perjalanan atau Pencapaian.",
+          time: "Minggu ini",
+          type: "report",
+          at: startOfWeek.getTime(),
+        });
+      }
+    } else if (user.role === "parent") {
+      if (wantMission && kids.length) {
+        const names = kids.map((k) => k.name).join(", ");
+        items.push({
+          id: `mission-${dayKey}`,
+          title: "Pengingat misi anak",
+          body:
+            kids.length === 1
+              ? `Ingatkan ${names} menyelesaikan misi harian hari ini.`
+              : `Ingatkan anak (${names}) menyelesaikan misi harian hari ini.`,
+          time: "Hari ini",
+          type: "mission",
+          at: startOfToday.getTime(),
+        });
+      }
+      if (wantWeekly && kids.length) {
+        items.push({
+          id: `weekly-${weekKey}`,
+          title: "Laporan mingguan siap",
+          body: "Buka Laporan Mingguan atau Analitik untuk meninjau perkembangan anak.",
+          time: "Minggu ini",
+          type: "report",
+          at: startOfWeek.getTime(),
+        });
+      }
+      if (!kids.length) {
+        items.push({
+          id: "no-child",
+          title: "Belum ada akun anak",
+          body: "Buat akun anak di menu Kelola Anak agar progres bisa dipantau.",
+          time: "Sekarang",
+          type: "info",
+          at: startOfToday.getTime(),
+        });
+      }
+    } else if (user.role === "teacher") {
+      if (kids.length) {
+        items.push({
+          id: `students-${kids.map((k) => k.id).sort().join(",")}`,
+          title: "Siswa terhubung",
+          body:
+            kids.length === 1
+              ? `Anda terhubung dengan ${kids[0].name}. Tambahkan observasi di menu Observasi.`
+              : `Anda memantau ${kids.length} siswa. Catat observasi terbaru di menu Observasi.`,
+          time: "Hari ini",
+          type: "info",
+          at: startOfToday.getTime(),
+        });
+      } else {
+        items.push({
+          id: "no-students",
+          title: "Belum ada siswa",
+          body: "Menunggu orang tua menghubungkan Anda ke profil anak.",
+          time: "Sekarang",
+          type: "info",
+          at: startOfToday.getTime(),
+        });
+      }
+      if (wantWeekly && kids.length) {
+        items.push({
+          id: `weekly-${weekKey}`,
+          title: "Laporan kelas",
+          body: "Ringkasan mingguan siswa siap ditinjau di menu Laporan.",
+          time: "Minggu ini",
+          type: "report",
+          at: startOfWeek.getTime(),
+        });
+      }
+    } else if (user.role === "therapist") {
+      if (kids.length) {
+        items.push({
+          id: `clients-${kids.map((k) => k.id).sort().join(",")}`,
+          title: "Klien terhubung",
+          body:
+            kids.length === 1
+              ? `Anda terhubung dengan ${kids[0].name}. Perbarui catatan sesi di menu Catatan.`
+              : `Anda memantau ${kids.length} klien. Perbarui catatan sesi di menu Catatan.`,
+          time: "Hari ini",
+          type: "info",
+          at: startOfToday.getTime(),
+        });
+      } else {
+        items.push({
+          id: "no-clients",
+          title: "Belum ada klien",
+          body: "Menunggu orang tua menghubungkan Anda ke profil anak.",
+          time: "Sekarang",
+          type: "info",
+          at: startOfToday.getTime(),
+        });
+      }
+      if (wantWeekly && kids.length) {
+        items.push({
+          id: `weekly-${weekKey}`,
+          title: "Laporan klien",
+          body: "Ringkasan mingguan klien siap ditinjau di menu Laporan.",
+          time: "Minggu ini",
+          type: "report",
+          at: startOfWeek.getTime(),
+        });
+      }
+    } else if (user.role === "admin") {
       items.push({
-        id: "mission",
-        title: "Daily mission reminder",
-        body: "Selesaikan misi harian hari ini agar streak tetap berjalan.",
+        id: `admin-${dayKey}`,
+        title: "Panel admin",
+        body: "Kelola pengguna, komunitas, dan konten dari menu Admin.",
         time: "Hari ini",
-        type: "mission",
+        type: "info",
+        at: startOfToday.getTime(),
       });
     }
-    if (settings?.weeklyProgressReport !== false) {
+
+    if (wantCommunity && user.role !== "child") {
       items.push({
-        id: "weekly",
-        title: "Weekly progress report",
-        body: "Laporan mingguan siap dibuka di menu Weekly Report / Analytics.",
-        time: "Minggu ini",
-        type: "report",
-      });
-    }
-    if (settings?.communityReplies) {
-      items.push({
-        id: "community",
-        title: "Community replies",
-        body: "Notifikasi balasan komunitas aktif. Cek menu Community untuk percakapan terbaru.",
+        id: `community-${dayKey}`,
+        title: "Komunitas",
+        body: "Ada balasan baru di Komunitas. Buka menu Komunitas untuk melihatnya.",
         time: "Baru",
         type: "community",
+        at: startOfToday.getTime(),
       });
     }
-    if (child) {
-      const [latestObservation, latestNote, latestActivity] = await Promise.all([
-        prisma.teacherObservation.findFirst({ where: { childId: child.id }, orderBy: { observedAt: "desc" } }),
-        prisma.therapistNote.findFirst({ where: { childId: child.id }, orderBy: { sessionAt: "desc" } }),
-        prisma.activityHistory.findFirst({ where: { childId: child.id }, orderBy: { completedAt: "desc" } }),
+
+    if (childIds.length && user.role !== "admin") {
+      const since = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000);
+      const [observations, notes, activities] = await Promise.all([
+        user.role === "teacher"
+          ? Promise.resolve([])
+          : prisma.teacherObservation.findMany({
+              where: { childId: { in: childIds }, observedAt: { gte: since } },
+              orderBy: { observedAt: "desc" },
+              take: 5,
+            }),
+        user.role === "therapist"
+          ? Promise.resolve([])
+          : prisma.therapistNote.findMany({
+              where: { childId: { in: childIds }, sessionAt: { gte: since } },
+              orderBy: { sessionAt: "desc" },
+              take: 5,
+            }),
+        prisma.activityHistory.findMany({
+          where: { childId: { in: childIds }, completedAt: { gte: since } },
+          orderBy: { completedAt: "desc" },
+          take: 6,
+        }),
       ]);
-      if (latestObservation) {
+
+      for (const obs of observations) {
+        const name = childName(obs.childId);
         items.push({
-          id: `obs-${latestObservation.id}`,
-          title: "Observasi guru terbaru",
-          body: latestObservation.title,
-          time: relativeTime(latestObservation.observedAt),
+          id: `obs-${obs.id}`,
+          title:
+            user.role === "parent"
+              ? `Observasi guru · ${name}`
+              : user.role === "child"
+                ? "Catatan dari guru"
+                : `Observasi · ${name}`,
+          body: obs.title,
+          time: relativeTime(obs.observedAt),
           type: "observation",
+          at: obs.observedAt.getTime(),
         });
       }
-      if (latestNote) {
+      for (const note of notes) {
+        const name = childName(note.childId);
         items.push({
-          id: `note-${latestNote.id}`,
-          title: "Catatan terapis terbaru",
-          body: latestNote.title,
-          time: relativeTime(latestNote.sessionAt),
+          id: `note-${note.id}`,
+          title:
+            user.role === "parent"
+              ? `Catatan terapis · ${name}`
+              : user.role === "child"
+                ? "Catatan dari terapis"
+                : `Catatan sesi · ${name}`,
+          body: note.title,
+          time: relativeTime(note.sessionAt),
           type: "session",
+          at: note.sessionAt.getTime(),
         });
       }
-      if (latestActivity) {
+      for (const act of activities) {
+        const name = childName(act.childId);
         items.push({
-          id: `act-${latestActivity.id}`,
-          title: "Aktivitas terbaru",
-          body: latestActivity.title,
-          time: relativeTime(latestActivity.completedAt),
+          id: `act-${act.id}`,
+          title:
+            user.role === "child"
+              ? "Aktivitas selesai"
+              : user.role === "parent"
+                ? `${name} menyelesaikan latihan`
+                : `Aktivitas · ${name}`,
+          body: act.title,
+          time: relativeTime(act.completedAt),
           type: "activity",
+          at: act.completedAt.getTime(),
         });
       }
     }
+
+    items.sort((a, b) => (b.at ?? 0) - (a.at ?? 0));
+    const trimmed = items.slice(0, 12).map(({ at, ...rest }) => ({
+      ...rest,
+      created_at: at ? new Date(at).toISOString() : null,
+    }));
+    // Unread is computed client-side after mark-as-read; server returns full list
     return {
       settings: toSnake(settings),
-      items,
-      unread: items.length,
+      items: trimmed,
+      unread: trimmed.length,
+      role: user.role,
     };
   }
 
@@ -1713,15 +1903,34 @@ export const Route = createFileRoute("/api/data/$action")({
           }
 
           if (action === "resource" || action === "update-resource" || action === "delete-resource") {
-            const canManage =
+            const canManageRole =
               user.role === "teacher" || user.role === "therapist" || user.role === "admin";
+            /** Sova (createdBy null) → admin only. Own → owner. Peers → no. Admin can manage all. */
+            const canMutateResource = (existing: { createdBy: string | null }) => {
+              if (!canManageRole) return false;
+              const ownerId = existing.createdBy ?? null;
+              if (!ownerId) return user.role === "admin";
+              if (ownerId === user.userId) return true;
+              if (user.role === "admin") return true;
+              return false;
+            };
 
             if (action === "delete-resource") {
-              if (!canManage) return json({ error: "Tidak diizinkan menghapus materi" }, 403);
+              if (!canManageRole) return json({ error: "Tidak diizinkan menghapus materi" }, 403);
               const id = String(body.id ?? body.resource_id ?? "").trim();
               if (!id) return json({ error: "Materi tidak ditemukan" }, 400);
               const existing = await prisma.resource.findUnique({ where: { id } });
               if (!existing) return json({ error: "Materi tidak ditemukan" }, 404);
+              if (!canMutateResource(existing)) {
+                return json(
+                  {
+                    error: existing.createdBy
+                      ? "Hanya pemilik materi yang boleh menghapus"
+                      : "Materi Sova hanya bisa dihapus oleh admin",
+                  },
+                  403,
+                );
+              }
               await prisma.resource.update({
                 where: { id },
                 data: { isActive: false },
@@ -1729,12 +1938,17 @@ export const Route = createFileRoute("/api/data/$action")({
               return json({ saved: true, deleted: true });
             }
 
-            if (!canManage) {
+            if (!canManageRole) {
               return json({ error: "Tidak diizinkan menambah atau mengubah materi" }, 403);
             }
 
             const title = String(body.title ?? "").trim();
-            const description = String(body.description ?? "").trim();
+            let description = String(body.description ?? "").trim();
+            const bodyContent = String(body.body ?? body.content ?? "").trim() || null;
+            // Card blurb only — keep short even if old clients send a long description
+            if (description.length > 220) {
+              description = `${description.slice(0, 217).trim()}…`;
+            }
             let category = String(body.category ?? "Guide").trim() || "Guide";
             let url = String(body.url ?? "").trim() || null;
             if (!title || !description) return json({ error: "Judul dan ringkasan wajib diisi" }, 400);
@@ -1816,6 +2030,16 @@ export const Route = createFileRoute("/api/data/$action")({
               if (!id) return json({ error: "Materi tidak ditemukan" }, 400);
               const existing = await prisma.resource.findUnique({ where: { id } });
               if (!existing || !existing.isActive) return json({ error: "Materi tidak ditemukan" }, 404);
+              if (!canMutateResource(existing)) {
+                return json(
+                  {
+                    error: existing.createdBy
+                      ? "Hanya pemilik materi yang boleh mengedit"
+                      : "Materi Sova hanya bisa diedit oleh admin",
+                  },
+                  403,
+                );
+              }
               const nextUrl =
                 url && (url.startsWith("/uploads/") || url.startsWith("sova-lesson:"))
                   ? url
@@ -1827,10 +2051,11 @@ export const Route = createFileRoute("/api/data/$action")({
                 data: {
                   title,
                   description,
+                  body: bodyContent,
                   category,
                   url: nextUrl,
-                  // mark as managed after first staff edit
-                  createdBy: existing.createdBy ?? user.userId,
+                  // keep Sova ownership null; never claim peer materials
+                  createdBy: existing.createdBy,
                 },
               });
               return json({ saved: true, resource: toSnake(updated) });
@@ -1840,6 +2065,7 @@ export const Route = createFileRoute("/api/data/$action")({
               data: {
                 title,
                 description,
+                body: bodyContent,
                 category,
                 url,
                 language: String(body.language ?? "id"),

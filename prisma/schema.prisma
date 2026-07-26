@@ -321,7 +321,10 @@ model Mission {
 model Resource {
   id          String  @id @default(uuid())
   title       String  @db.VarChar(255)
+  /// Short blurb for the card list
   description String  @db.Text
+  /// Full material content shown when opened (plain text / simple HTML)
+  body        String? @db.LongText
   category    String  @default("Guide") @db.VarChar(100)
   language    String  @default("id") @db.VarChar(10)
   url         String? @db.Text

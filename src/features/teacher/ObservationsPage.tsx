@@ -27,7 +27,7 @@ export function ObservationsPage() {
   const [childId, setChildId] = useState<string | undefined>();
   const detail = useSociovaQuery(() => loadRoleDetailData(childId), [childId]);
 
-  const [title, setTitle] = useState("Observasi kelas");
+  const [title, setTitle] = useState("");
   const [observation, setObservation] = useState("");
   const [supportPlan, setSupportPlan] = useState("");
   const [saving, setSaving] = useState(false);
@@ -57,6 +57,7 @@ export function ObservationsPage() {
         child_id: childId ?? activeChild?.id,
       });
       toast.success("Observasi disimpan");
+      setTitle("");
       setObservation("");
       setSupportPlan("");
       detail.refetch();
@@ -128,14 +129,14 @@ export function ObservationsPage() {
           <Input
             value={title}
             onChange={(e) => setTitle(e.target.value)}
-            placeholder="Judul observasi"
+            placeholder="Judul, contoh: Interaksi di kelompok kecil"
             className="rounded-xl"
           />
           <Textarea
             value={observation}
             onChange={(e) => setObservation(e.target.value)}
             rows={4}
-            placeholder="Perilaku atau interaksi yang diamati"
+            placeholder="Perilaku atau interaksi yang diamati…"
             className="rounded-xl"
           />
           <Textarea
